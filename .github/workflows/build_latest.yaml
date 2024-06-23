@@ -77,16 +77,17 @@ jobs:
         run: |
           . venv/bin/activate
           esphome compile ${{ matrix.file }}
+          esphome config ${{ matrix.file }} >> ${{ matrix.file }}.cmpl.yaml 
       
       - name: Parse name
         id: get_node_name
         uses: mikefarah/yq@master
         with:
-          cmd: echo "node=$(esphome config ${{ matrix.file }} | yq '.esphome.name')" >> $GITHUB_OUTPUT
+          cmd: yq '.esphome.name' ${{ matrix.file }}.cmpl.yaml
       
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.file }}.firmware.factory.bin
-          path: config/.esphome/build/${{ steps.get_node_name.outputs.node }}/.pioenvs/${{ steps.get_node_name.outputs.node }}/firmware.factory.bin
+          path: config/.esphome/build/${{ steps.get_node_name.outputs.result }}/.pioenvs/${{ steps.get_node_name.outputs.result }}/firmware.factory.bin
           retention-days: 30
