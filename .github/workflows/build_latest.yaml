@@ -91,3 +91,10 @@ jobs:
           name: ${{ steps.get_node_name.outputs.result }}.firmware.factory.bin
           path: config/.esphome/build/${{ steps.get_node_name.outputs.result }}/.pioenvs/${{ steps.get_node_name.outputs.result }}/firmware.factory.bin
           retention-days: 30
+      
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.get_node_name.outputs.result }}.firmware.bin
+          path: config/.esphome/build/${{ steps.get_node_name.outputs.result }}/.pioenvs/${{ steps.get_node_name.outputs.result }}/firmware.bin
+          retention-days: 30
