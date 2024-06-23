@@ -72,7 +72,21 @@ jobs:
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
           cache-key: ${{ needs.common.outputs.cache-key }}
+      
       - name: Run esphome compile ${{ matrix.file }}
         run: |
           . venv/bin/activate
           esphome compile ${{ matrix.file }}
+      
+      - name: Parse name
+        id: get_node_name
+        uses: mikefarah/yq@master
+          with:
+            cmd: echo "node=$(esphome config ${{ matrix.file }} | yq '.esphome.name')" >> $GITHUB_OUTPUT
+      
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
+          with:
+            name: ${{ matrix.file }}.firmware.factory.bin
+            path: config/.esphome/build/${{ steps.get_node_name.outputs.node }}/.pioenvs/${{ steps.get_node_name.outputs.node }}/firmware.factory.bin
+            retention-days: 30
