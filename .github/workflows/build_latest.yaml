@@ -88,6 +88,6 @@ jobs:
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.file }}.firmware.factory.bin
+          name: ${{ steps.get_node_name.outputs.result }}.firmware.factory.bin
           path: config/.esphome/build/${{ steps.get_node_name.outputs.result }}/.pioenvs/${{ steps.get_node_name.outputs.result }}/firmware.factory.bin
           retention-days: 30
