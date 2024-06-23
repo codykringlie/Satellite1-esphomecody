@@ -81,12 +81,12 @@ jobs:
       - name: Parse name
         id: get_node_name
         uses: mikefarah/yq@master
-          with:
-            cmd: echo "node=$(esphome config ${{ matrix.file }} | yq '.esphome.name')" >> $GITHUB_OUTPUT
+        with:
+          cmd: echo "node=$(esphome config ${{ matrix.file }} | yq '.esphome.name')" >> $GITHUB_OUTPUT
       
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v4
-          with:
-            name: ${{ matrix.file }}.firmware.factory.bin
-            path: config/.esphome/build/${{ steps.get_node_name.outputs.node }}/.pioenvs/${{ steps.get_node_name.outputs.node }}/firmware.factory.bin
-            retention-days: 30
+        with:
+          name: ${{ matrix.file }}.firmware.factory.bin
+          path: config/.esphome/build/${{ steps.get_node_name.outputs.node }}/.pioenvs/${{ steps.get_node_name.outputs.node }}/firmware.factory.bin
+          retention-days: 30
