@@ -24,10 +24,6 @@ microphone:
       - resampler
       - self
 
-text_sensor:
-  - platform: version
-    name: ${node_name}-firmware
-    hide_timestamp: true
 
 udp_stream:
   #use ip address of this machine if not set

@@ -4,3 +4,8 @@ external_components:
       path: ../esphome/components
     components: [ udp_stream, version ]
     
+
+text_sensor:
+  - platform: version
+    name: ${node_name}-firmware
+    hide_timestamp: true

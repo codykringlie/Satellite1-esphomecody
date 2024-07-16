@@ -4,6 +4,7 @@ substitutions:
 packages:
   device_base: !include common/board.yaml
   wifi: !include common/wifi_improv.yaml
+  local: !include common/local_components.yaml
 
 logger:
   deassert_rts_dtr: true
