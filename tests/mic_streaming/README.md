@@ -46,6 +46,29 @@ Audio files from the wake-word-benchmark are played on this machine while the mi
 
 4. disable `Stream Mic via UDP` switch in HA
 
+
+### Run Live Streaming
+The received mic data is played directly played on this machine and recorded in 10s chunks.
+Make sure to use headphones in order to prevent audio feedback.
+
+1. if not already done, activate virtual env
+    ```sh
+    source .venv/bin/activate
+    ```
+
+2. run test:
+    ```
+    python tests/mic_streaming/run_live_streaming.py
+    ```
+
+3. enable `Stream Mic via UDP` switch in HA
+
+
+4. disable `Stream Mic via UDP` switch in HA
+
+
+
+
 ### Recordings
 Recordings can be found here:
 ```
