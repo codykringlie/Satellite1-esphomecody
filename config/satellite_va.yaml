@@ -1,0 +1,132 @@
+substitutions:
+  node_name: satellite-va
+
+packages:
+  device_base: !include common/board.yaml
+  wifi: !include common/wifi_improv.yaml
+  adf: !include common/adf_pipeline.yaml
+  local: !include common/local_components.yaml
+  #sensors: !include common/hat_sensors.yaml
+  va: !include common/va.yaml
+
+logger:
+  deassert_rts_dtr: true
+  hardware_uart : USB_SERIAL_JTAG
+  level: DEBUG
+
+api:
+
+microphone:
+  - platform: adf_pipeline
+    id: adf_microphone
+    gain_log2: 3
+    keep_pipeline_alive: false
+    pipeline:
+      - adf_i2s_in
+      - resampler
+      - self
+
+media_player:
+  - platform: adf_pipeline
+    id: adf_media_player
+    name: cosmic_player
+    keep_pipeline_alive: false
+    internal: false
+    pipeline:
+      - self
+      - resampler
+      - adf_i2s_out
+
+micro_wake_word:
+  model: okay_nabu
+  on_wake_word_detected:
+      - media_player.stop:
+      - voice_assistant.start:
+
+voice_assistant:
+  microphone: adf_microphone
+  media_player: adf_media_player
+
+  use_wake_word: false
+  #vad_threshold: 3
+
+  noise_suppression_level: 4
+  auto_gain: 31dBFS
+  volume_multiplier: 4.0
+
+  on_client_connected:
+    - lambda: id(init_in_progress) = false;
+    - if:
+        condition:
+          switch.is_on: use_wake_word
+        then:
+          - micro_wake_word.start:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+        else:
+          - lambda: id(voice_assistant_phase) = ${voice_assist_muted_phase_id};
+
+  on_client_disconnected:
+    - lambda: id(voice_assistant_phase) = ${voice_assist_not_ready_phase_id};
+    - voice_assistant.stop
+    - micro_wake_word.stop
+
+  on_end:
+      then:
+        - voice_assistant.stop
+        - wait_until:
+            not:
+              voice_assistant.is_running:
+        - if:
+            condition:
+              switch.is_on: use_wake_word
+            then:
+              - micro_wake_word.start:
+  on_error:
+      then:
+        - voice_assistant.stop
+        - wait_until:
+            not:
+              voice_assistant.is_running:
+        - if:
+            condition:
+              switch.is_on: use_wake_word
+            then:
+              - micro_wake_word.start:
+
+
+switch:
+  - platform: template
+    name: Enable Voice Assistant
+    id: use_wake_word
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_ON
+    icon: mdi:assistant
+    # When the switch is turned on (on Home Assistant):
+    # Start the voice assistant component
+    # Set the correct phase and run the script to refresh the LED status
+    on_turn_on:
+      - logger.log: "switch on"
+      - if:
+          condition:
+            lambda: return !id(init_in_progress);
+          then:
+            - logger.log: "condition 1"
+            - lambda: id(voice_assistant_phase) = ${voice_assist_idle_phase_id};
+            - voice_assistant.stop
+            - delay: 1s
+            - if:
+                condition:
+                  not:
+                    - voice_assistant.is_running
+                then:
+                  - logger.log: "Starting MWW"
+                  #- voice_assistant.start_continuous
+                  - micro_wake_word.start:
+    on_turn_off:
+      - if:
+          condition:
+            lambda: return !id(init_in_progress);
+          then:
+            - voice_assistant.stop
+            - micro_wake_word.stop
+            - lambda: id(voice_assistant_phase) = ${voice_assist_muted_phase_id};

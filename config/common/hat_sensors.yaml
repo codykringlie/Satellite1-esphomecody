@@ -1,0 +1,26 @@
+i2c:
+  - id: bus_a
+    sda: GPIO8
+    scl: GPIO18
+    frequency: 100kHz
+    scan: True
+
+sensor:
+  - platform: aht10
+    variant: AHT20
+    temperature:
+      name: "Living Room Temperature"
+    humidity:
+      name: "Living Room Humidity"
+    update_interval: 60s
+
+  - platform: veml7700
+    address: 0x10
+    update_interval: 60s
+
+    # short variant of sensor definition:
+    ambient_light: "Ambient light"
+    # longer variant of sensor definition:
+    actual_gain:
+      name: "Actual gain"
+

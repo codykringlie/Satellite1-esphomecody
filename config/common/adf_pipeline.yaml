@@ -1,0 +1,41 @@
+external_components:
+  - source:
+      type: git
+      url: https://github.com/gnumpi/esphome_audio
+      ref: allow_external_clk_mode
+    components: [ adf_pipeline, i2s_audio ]
+
+
+i2s_audio:
+  - id: i2s_shared
+    i2s_lrclk_pin: GPIO45
+    i2s_bclk_pin: GPIO17
+    i2s_mclk_pin: GPIO02
+    access_mode: duplex
+
+adf_pipeline:
+  - platform: i2s_audio
+    type: audio_out
+    id: adf_i2s_out
+    i2s_audio_id: i2s_shared
+    i2s_clock_mode: external
+    i2s_dout_pin: GPIO16
+    adf_alc: true
+    alc_max: .5
+    channel: right_left
+    sample_rate: 16000
+    bits_per_sample: 32bit
+    fixed_settings: true
+
+  - platform: i2s_audio
+    type: audio_in
+    id: adf_i2s_in
+    i2s_audio_id: i2s_shared
+    i2s_clock_mode: external
+    i2s_din_pin: GPIO15
+    pdm: false
+    channel: right_left
+    sample_rate: 16000
+    bits_per_sample: 32bit
+    fixed_settings: true
+

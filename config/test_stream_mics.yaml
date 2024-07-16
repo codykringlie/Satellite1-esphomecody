@@ -1,0 +1,51 @@
+substitutions:
+  node_name: mic_udp_streamer
+
+packages:
+  device_base: !include common/board.yaml
+  wifi: !include common/wifi_improv.yaml
+  adf: !include common/adf_pipeline.yaml
+  local: !include common/local_components.yaml
+
+logger:
+  deassert_rts_dtr: true
+  hardware_uart : USB_SERIAL_JTAG
+  level: VERBOSE
+
+api:
+
+microphone:
+  - platform: adf_pipeline
+    id: adf_microphone
+    gain_log2: 3
+    keep_pipeline_alive: false
+    pipeline:
+      - adf_i2s_in
+      - resampler
+      - self
+
+text_sensor:
+  - platform: version
+    name: ${node_name}-firmware
+    hide_timestamp: true
+
+udp_stream:
+  #use ip address of this machine if not set
+  #ip_address: 
+
+switch:
+  - platform: template
+    name: Stream Mic via UDP
+    id: stream_mic_udp
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    icon: mdi:assistant
+    
+    on_turn_on:
+      - logger.log: "switch udp stream on"
+      - udp_stream.start
+      
+    on_turn_off:
+      - logger.log: "switch udp stream off"
+      - udp_stream.stop
+
