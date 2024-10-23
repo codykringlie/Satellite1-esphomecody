@@ -113,8 +113,8 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v5
         with:
           fromTag: ${{ needs.prepare.outputs.previous_tag }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   create_release:
     name: Create Release
