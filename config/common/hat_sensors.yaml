@@ -1,19 +1,19 @@
 sensor:
-  - platform: aht10
-    variant: AHT20
-    temperature:
-      name: "Living Room Temperature"
-    humidity:
-      name: "Living Room Humidity"
-    update_interval: 60s
+  # - platform: aht10
+  #   address: 0x38
+  #   variant: AHT20
+  #   temperature:
+  #     name: "Living Room Temperature"
+  #   humidity:
+  #     name: "Living Room Humidity"
+  #   update_interval: 60s
 
-  - platform: veml7700
-    address: 0x10
+  - platform: ltr_als_ps
+    address: 0x29
+    type: ALS
     update_interval: 60s
 
     # short variant of sensor definition:
     ambient_light: "Ambient light"
-    # longer variant of sensor definition:
-    actual_gain:
-      name: "Actual gain"
+    
 

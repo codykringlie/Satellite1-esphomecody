@@ -12,10 +12,12 @@ external_components:
 
 i2s_audio:
   - id: i2s_shared
-    i2s_lrclk_pin: GPIO45
-    i2s_bclk_pin: GPIO17
-    i2s_mclk_pin: GPIO02
+    i2s_lrclk_pin: GPIO07
+    i2s_bclk_pin: GPIO08
+    i2s_mclk_pin: GPIO09
     access_mode: duplex
+
+# fusb302b:
 
 audio_dac:
   - platform: pcm5122
@@ -24,15 +26,13 @@ audio_dac:
   #- platform: tas2780
   #  address: 0x38
 
-
-
 media_player:
   - platform: satellite1
     id: nabu_media_player
     name: Media Player
     internal: false
     sample_rate: 48000
-    i2s_dout_pin: GPIO16
+    i2s_dout_pin: GPIO10
     bits_per_sample: 32bit
     i2s_clock_mode: external
     channel: right_left
@@ -51,9 +51,10 @@ microphone:
   - platform: satellite1
     id: mic0
     sample_rate: 48000
-    i2s_din_pin: GPIO15
+    i2s_din_pin: GPIO11
     bits_per_sample: 32bit
     i2s_clock_mode: external
     channel: right_left
     pdm: false
     adc_type: external
+    gain_log2: 4

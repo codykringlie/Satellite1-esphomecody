@@ -7,8 +7,8 @@ packages:
   device_base: !include common/board.yaml
   wifi: !include common/wifi_improv.yaml
   local: !include common/local_components.yaml
-  sensors: !include common/hat_sensors_r3.yaml
-  vk: !include common/nabu_vk_duplex_r3.yaml
+  sensors: !include common/hat_sensors.yaml
+  vk: !include common/nabu_vk_duplex.yaml
   va: !include common/va.yaml
   led_ring: !include 
     file: common/led_ring.yaml
