@@ -3,19 +3,17 @@ substitutions:
   core_revision: "3"
   led_ring_id: "satellite1_led_ring"
 
-packages:
-  device_base: !include common/board.yaml
-  wifi: !include common/wifi_improv.yaml
-  local: !include common/local_components.yaml
-  sensors: !include common/hat_sensors.yaml
-  mp: !include common/media_player.yaml
-  va: !include common/voice_assistant.yaml
-  led_ring: !include 
-    file: common/led_ring.yaml
-    vars:
-      led_ring_platform: satellite1
+globals:
+  # Global initialisation variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
+  - id: init_in_progress
+    type: bool
+    restore_value: no
+    initial_value: 'true'
+
 
 esphome:
+  name: ${node_name}-rev${core_revision}
+  min_version: 2024.2.0
   project:
     name: satellite1.voice_assistant_r${core_revision}
     version: dev
@@ -23,6 +21,7 @@ esphome:
   on_boot:
     priority: 375
     then:
+      - logger.log: "Core-Rev ${core_revision}"
       # Run the script to refresh the LED status
       - script.execute: update_leds
       - delay: 1s
@@ -35,6 +34,22 @@ esphome:
           then:
             - lambda: id(init_in_progress) = false;
             - script.execute: update_leds
+
+
+packages:
+  core_board: !include common/core_board.yaml
+  wifi: !include common/wifi_improv.yaml
+  
+  local: !include common/local_components.yaml
+  sensors: !include common/hat_sensors.yaml
+  mp: !include common/media_player.yaml
+  va: !include common/voice_assistant.yaml
+  led_ring: !include 
+    file: common/led_ring.yaml
+    vars:
+      led_ring_platform: satellite1
+
+
 
 logger:
   deassert_rts_dtr: true
@@ -55,23 +70,11 @@ api:
 ota:
   - platform: satellite1
     id: ota_satellite1_xmos
+  
+  - platform: esphome
 
 http_request:
 
-i2c:
-  - id: bus_a
-    sda: GPIO5
-    scl: GPIO6
-    frequency: 400kHz
-    scan: True
-
-
-spi:
-  - id: spi_0
-    clk_pin:  GPIO40
-    mosi_pin: GPIO39
-    miso_pin: GPIO41
-    interface: SPI3
 
 
 satellite1:
