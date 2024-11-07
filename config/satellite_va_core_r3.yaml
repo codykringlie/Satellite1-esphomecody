@@ -47,11 +47,23 @@ logger:
   level: debug
 
 
+external_components:
+  - source:
+      type: git
+      url: https://github.com/gnumpi/nabu-voice-kit
+      ref: dev
+    components: [ audio_dac, media_player ]
+
+  - source:
+      type: local
+      path: ../esphome/components
+    components: [ i2s_audio, satellite1, pcm5122 ]
+
+
 packages:
   core_board: !include common/core_board.yaml
   wifi: !include common/wifi_improv.yaml
   
-  local: !include common/local_components.yaml
   sensors: !include common/hat_sensors.yaml
   mp: !include common/media_player.yaml
   va: !include common/voice_assistant.yaml
