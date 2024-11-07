@@ -1,0 +1,57 @@
+debug:
+  update_interval: 5s
+
+text_sensor:
+  - platform: debug
+    device:
+      name: "Device Info"
+      entity_category: "diagnostic"
+    reset_reason:
+      name: "Reset Reason"
+      entity_category: "diagnostic"
+
+  - platform: version
+    name: Satellite1 Firmware Build
+    entity_category: "diagnostic"
+    hide_timestamp: true
+
+  - platform: template
+    name: "Current XMOS fw"
+    entity_category: "diagnostic"
+    icon: "mdi:code-braces"
+    lambda: |-
+      return std::string("${xmos_fw_version}");
+
+  - platform: template
+    name: "Compat. w/ CORE hw"
+    entity_category: "diagnostic"
+    icon: "mdi:chip"
+    lambda: |-
+      return std::string("${built_with_core_hw_version}");
+
+  - platform: template
+    name: "Compat. w/ HAT hw"
+    entity_category: "diagnostic"
+    icon: "mdi:chip"
+    lambda: |-
+      return std::string("${built_with_hat_hw_version}");
+
+sensor:
+  - platform: debug
+    free:
+      name: "Heap Free"
+      entity_category: "diagnostic"
+    block:
+      name: "Heap Max Block"
+      entity_category: "diagnostic"
+    loop_time:
+      name: "Loop Time"
+      entity_category: "diagnostic"
+    psram:
+      name: "Free PSRAM"
+      entity_category: "diagnostic"
+  - platform: wifi_signal
+    name: "Wi-Fi Signal Strength"
+    entity_category: "diagnostic"
+    update_interval: 60s
+

@@ -3,6 +3,11 @@ substitutions:
   core_revision: "3"
   led_ring_id: "satellite1_led_ring"
 
+  xmos_fw_version: "v1.0.1-alpha.27"
+  built_with_core_hw_version: "v1.0.0-beta.1"
+  built_with_hat_hw_version: "v1.0.0-beta.1"
+
+
 globals:
   # Global initialisation variable. Initialized to true and set to false once everything is connected. Only used to have a smooth "plugging" experience
   - id: init_in_progress
@@ -36,6 +41,12 @@ esphome:
             - script.execute: update_leds
 
 
+logger:
+  deassert_rts_dtr: true
+  hardware_uart : USB_SERIAL_JTAG
+  level: debug
+
+
 packages:
   core_board: !include common/core_board.yaml
   wifi: !include common/wifi_improv.yaml
@@ -48,13 +59,9 @@ packages:
     file: common/led_ring.yaml
     vars:
       led_ring_platform: satellite1
+  debug: !include common/debug.yaml
 
 
-
-logger:
-  deassert_rts_dtr: true
-  hardware_uart : USB_SERIAL_JTAG
-  level: DEBUG
 
 status_led:
   pin: GPIO45
@@ -134,7 +141,6 @@ light:
     name: LED-Ring
     
 
-
 button:
   - platform: template
     id: flash_satellite
@@ -143,7 +149,7 @@ button:
     on_press:
       then:
         - ota.satellite1.flash:
-            url: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/v1.0.1-alpha.27/satellite1_firmware_adec.factory.bin
-            md5_url: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/v1.0.1-alpha.27/satellite1_firmware_adec.factory.md5
+            url: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/${xmos_fw_version}/satellite1_firmware_adec.factory.bin
+            md5_url: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/${xmos_fw_version}/satellite1_firmware_adec.factory.md5
 
 
