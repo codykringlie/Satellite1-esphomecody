@@ -8,8 +8,8 @@ packages:
   wifi: !include common/wifi_improv.yaml
   local: !include common/local_components.yaml
   sensors: !include common/hat_sensors.yaml
-  vk: !include common/nabu_vk_duplex.yaml
-  va: !include common/va.yaml
+  mp: !include common/media_player.yaml
+  va: !include common/voice_assistant.yaml
   led_ring: !include 
     file: common/led_ring.yaml
     vars:
@@ -131,14 +131,6 @@ light:
     name: LED-Ring
     
 
-micro_wake_word:
-  #model: github://esphome/micro-wake-word-models/models/v2/okay_nabu.json 
-  models:
-    - okay_nabu
-  on_wake_word_detected:
-    - lambda: id(voice_assistant_phase) = ${voice_assist_listening_phase_id};
-    - script.execute: update_leds
-
 
 button:
   - platform: template
@@ -152,15 +144,3 @@ button:
             md5_url: https://raw.githubusercontent.com/FutureProofHomes/Documentation/refs/heads/main/assets/firmware/xmos/v1.0.1-alpha.27/satellite1_firmware_adec.factory.md5
 
 
-switch:
-  - platform: template
-    name: enable_mww
-    id: sw_enable_mww
-    optimistic: true
-    restore_mode: ALWAYS_OFF
-    
-    on_turn_on:
-      - micro_wake_word.start:
-    
-    on_turn_off:
-    - micro_wake_word.stop:

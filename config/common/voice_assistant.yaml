@@ -22,4 +22,35 @@ globals:
     restore_value: no
     initial_value: ${voice_assist_not_ready_phase_id}
 
+microphone:
+  - platform: satellite1
+    id: mic0
+    sample_rate: 48000
+    i2s_din_pin: GPIO11
+    bits_per_sample: 32bit
+    i2s_clock_mode: external
+    channel: right_left
+    pdm: false
+    adc_type: external
+    gain_log2: 4
 
+micro_wake_word:
+  #model: github://esphome/micro-wake-word-models/models/v2/okay_nabu.json 
+  models:
+    - okay_nabu
+  on_wake_word_detected:
+    - lambda: id(voice_assistant_phase) = ${voice_assist_listening_phase_id};
+    - script.execute: update_leds
+
+switch:
+  - platform: template
+    name: enable_mww
+    id: sw_enable_mww
+    optimistic: true
+    restore_mode: ALWAYS_OFF
+    
+    on_turn_on:
+      - micro_wake_word.start:
+    
+    on_turn_off:
+    - micro_wake_word.stop:

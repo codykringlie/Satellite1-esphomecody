@@ -17,15 +17,10 @@ i2s_audio:
     i2s_mclk_pin: GPIO09
     access_mode: duplex
 
-# fusb302b:
-
 audio_dac:
   - platform: pcm5122
     address: 0x4D
   
-  #- platform: tas2780
-  #  address: 0x38
-
 media_player:
   - platform: satellite1
     id: nabu_media_player
@@ -46,15 +41,3 @@ media_player:
       - script.execute: update_leds
     on_volume:
       - script.execute: update_leds
-
-microphone:
-  - platform: satellite1
-    id: mic0
-    sample_rate: 48000
-    i2s_din_pin: GPIO11
-    bits_per_sample: 32bit
-    i2s_clock_mode: external
-    channel: right_left
-    pdm: false
-    adc_type: external
-    gain_log2: 4
