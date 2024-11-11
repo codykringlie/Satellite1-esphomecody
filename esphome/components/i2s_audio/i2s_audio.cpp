@@ -92,10 +92,10 @@ bool I2SAudioComponent::install_i2s_driver_(i2s_driver_config_t i2s_cfg, uint8_t
         this->installed_cfg_ = i2s_cfg;
       }
     }
-  } else if (this->access_mode_ == I2SAccessMode::DUPLEX && (this->access_state_ & access) == 0){
+  } else if (this->access_mode_ == I2SAccessMode::DUPLEX && this->driver_loaded_ ){
     success = this->validate_cfg_for_duplex_(i2s_cfg);
-    if(success){
-      this->access_state_ |= access;
+    if (!success ){
+      ESP_LOGE(TAG, "incompatible i2s settings for duplex mode, access_state: %d", this->access_state_);
     }
   }
   this->unlock();
