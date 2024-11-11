@@ -11,10 +11,8 @@ from esphome.components.i2s_audio import (
     i2s_audio_ns,
     I2SAudioComponent,
     I2SReader,
-    CONF_I2S_ADC,
     CONF_I2S_AUDIO_ID,
     CONF_I2S_DIN_PIN,
-    CONFIG_SCHEMA_ADC,
     register_i2s_reader,
 )
 
@@ -89,9 +87,6 @@ CONFIG_SCHEMA = cv.All(
                 {
                     cv.Required(CONF_I2S_DIN_PIN): pins.internal_gpio_input_pin_number,
                     cv.Required(CONF_PDM): cv.boolean,
-                    cv.Optional(
-                        CONF_I2S_ADC, default={CONF_MODEL: "generic"}
-                    ): CONFIG_SCHEMA_ADC,
                     cv.Optional(CONF_GAIN_LOG_2, default=0): cv.int_range(0, 7),
                 }
             ).extend(i2s.CONFIG_SCHEMA_I2S_COMMON),

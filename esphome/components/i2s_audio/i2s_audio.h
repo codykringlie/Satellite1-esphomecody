@@ -76,9 +76,6 @@ class I2SAudioComponent : public Component {
   bool driver_loaded_{false};
 };
 
-class ExternalADC;
-class ExternalDAC;
-
 class I2SSettings {
 public:
   I2SSettings() = default;
@@ -127,9 +124,6 @@ public:
     this->use_internal_adc_ = true;
   }
 #endif
-#ifdef I2S_EXTERNAL_ADC
-   void set_external_adc(ExternalADC* adc){this->external_adc_ = adc;}
-#endif
    void set_din_pin(int8_t pin) { this->din_pin_ = pin; }
    int8_t get_din_pin() { return this->din_pin_; }
 
@@ -137,9 +131,6 @@ protected:
 #if SOC_I2S_SUPPORTS_ADC
    adc1_channel_t adc_channel_{ADC1_CHANNEL_MAX};
    bool use_internal_adc_{false};
-#endif
-#ifdef I2S_EXTERNAL_ADC
-   ExternalADC* external_adc_{};
 #endif
    int8_t din_pin_{I2S_PIN_NO_CHANGE};
 };
@@ -159,9 +150,6 @@ public:
 #if SOC_I2S_SUPPORTS_DAC
   void set_internal_dac_mode(i2s_dac_mode_t mode) { this->internal_dac_mode_ = mode; }
 #endif
-#ifdef I2S_EXTERNAL_DAC
-   void set_external_dac(ExternalDAC* dac){this->external_dac_ = dac;}
-#endif
 
    void set_dout_pin(int8_t pin) { this->dout_pin_ = pin; }
    int8_t get_dout_pin() { return this->dout_pin_; }
@@ -169,9 +157,6 @@ public:
 protected:
 #if SOC_I2S_SUPPORTS_DAC
    i2s_dac_mode_t internal_dac_mode_{I2S_DAC_CHANNEL_DISABLE};
-#endif
-#ifdef I2S_EXTERNAL_DAC
-   ExternalDAC* external_dac_{};
 #endif
    int8_t dout_pin_{I2S_PIN_NO_CHANGE};
 };

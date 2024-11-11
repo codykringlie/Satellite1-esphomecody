@@ -35,11 +35,6 @@ CONF_SAMPLE_RATE = "sample_rate"
 CONF_BITS_PER_SAMPLE = "bits_per_sample"
 CONF_PDM = "pdm"
 
-CONF_ADC_TYPE = "adc_type"
-CONF_DAC_TYPE = "dac_type"
-CONF_I2S_DAC = "dac"
-CONF_I2S_ADC = "adc"
-
 i2s_audio_ns = cg.esphome_ns.namespace("i2s_audio")
 I2SAudioComponent = i2s_audio_ns.class_("I2SAudioComponent", cg.Component)
 
@@ -93,92 +88,25 @@ async def to_code(config):
 I2SReader = i2s_audio_ns.class_("I2SReader", cg.Parented.template(I2SAudioComponent))
 I2SWriter = i2s_audio_ns.class_("I2SWriter", cg.Parented.template(I2SAudioComponent))
 
-ExternalDAC = i2s_audio_ns.class_("ExternalDAC", i2c.I2CDevice)
-AW88298 = i2s_audio_ns.class_("AW88298", ExternalDAC, i2c.I2CDevice)
-ES8388 = i2s_audio_ns.class_("ES8388", ExternalDAC, i2c.I2CDevice)
-ES8311 = i2s_audio_ns.class_("ES8311", ExternalDAC, i2c.I2CDevice)
-PCM5122 = i2s_audio_ns.class_("PCM5122", ExternalDAC, i2c.I2CDevice)
-
-ExternalADC = i2s_audio_ns.class_("ExternalADC", i2c.I2CDevice)
-ES7210 = i2s_audio_ns.class_("ES7210", ExternalADC, i2c.I2CDevice)
-
 
 I2S_AUDIO_IN = "audio_in"
 I2S_AUDIO_OUT = "audio_out"
 
-CONFIG_SCHEMA_DAC_ENTRY = cv.Schema(
-    {
-        cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-        cv.Optional(CONF_VOLUME): cv.float_range(0, 1.0),
-    }
-)
-
-CONFIG_SCHEMA_DAC = cv.typed_schema(
-    {
-        "generic": cv.Schema({}),
-        "internal": cv.Schema(
-            {
-                cv.GenerateID(CONF_I2S_AUDIO_ID): cv.use_id(I2SAudioComponent),
-                cv.Required(CONF_MODE): cv.enum(i2s.INTERNAL_DAC_OPTIONS, lower=True),
-            }
-        ),
-        "aw88298": CONFIG_SCHEMA_DAC_ENTRY.extend(
-            {
-                cv.GenerateID(): cv.declare_id(AW88298),
-                cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-            }
-        ).extend(i2c.i2c_device_schema(0x36)),
-        "es8388": CONFIG_SCHEMA_DAC_ENTRY.extend(
-            {
-                cv.GenerateID(): cv.declare_id(ES8388),
-            }
-        ).extend(i2c.i2c_device_schema(0x10)),
-        "es8311": CONFIG_SCHEMA_DAC_ENTRY.extend(
-            {
-                cv.GenerateID(): cv.declare_id(ES8311),
-                cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-            }
-        ).extend(i2c.i2c_device_schema(0x30)),
-        "pcm5122": CONFIG_SCHEMA_DAC_ENTRY.extend(
-            {
-                cv.GenerateID(): cv.declare_id(PCM5122),
-                cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-            }
-        ).extend(i2c.i2c_device_schema(0x4D)),
-    },
-    key=CONF_MODEL,
-    default_type="generic",
-)
 
 CONFIG_SCHEMA_I2S_WRITER = i2s.CONFIG_SCHEMA_I2S_COMMON.extend(
     {
         cv.GenerateID(CONF_I2S_AUDIO_ID): cv.use_id(I2SAudioComponent),
         cv.Required(CONF_I2S_DOUT_PIN): pins.internal_gpio_output_pin_number,
-        cv.Optional(CONF_I2S_DAC, default={CONF_MODEL: "generic"}): CONFIG_SCHEMA_DAC,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
 
-CONFIG_SCHEMA_ADC = cv.typed_schema(
-    {
-        "generic": cv.Schema({}),
-        "internal": cv.Schema({}),
-        "es7210": cv.Schema(
-            {
-                cv.GenerateID(): cv.declare_id(ES7210),
-                cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-            }
-        ).extend(i2c.i2c_device_schema(0x36)),
-    },
-    key=CONF_MODEL,
-)
 
 CONFIG_SCHEMA_I2S_READER = i2s.CONFIG_SCHEMA_I2S_COMMON.extend(
     {
         cv.GenerateID(CONF_I2S_AUDIO_ID): cv.use_id(I2SAudioComponent),
         cv.Required(CONF_I2S_DIN_PIN): pins.internal_gpio_input_pin_number,
         cv.Required(CONF_PDM): cv.boolean,
-        cv.Optional(CONF_I2S_ADC, default={CONF_MODEL: "generic"}): CONFIG_SCHEMA_ADC,
     }
 )
 
@@ -235,19 +163,6 @@ async def register_i2s_writer(writer, config: dict) -> None:
     if CONF_I2S_DOUT_PIN in config:
         cg.add(writer.set_dout_pin(config[CONF_I2S_DOUT_PIN]))
 
-    if CONF_I2S_DAC in config:
-        dac_cfg = config[CONF_I2S_DAC]
-        if dac_cfg["model"] in ["aw88298", "es8388", "es8311", "pcm5122"]:
-            cg.add_define("I2S_EXTERNAL_DAC")
-            dac = cg.new_Pvariable(dac_cfg[CONF_ID])
-            cg.add(writer.set_external_dac(dac))
-            await i2c.register_i2c_device(dac, dac_cfg)
-
-            if CONF_ENABLE_PIN in dac_cfg:
-                en_pin = await cg.gpio_pin_expression(dac_cfg[CONF_ENABLE_PIN])
-                cg.add(dac.set_gpio_enable(en_pin))
-            if CONF_VOLUME in dac_cfg:
-                cg.add(dac.set_init_volume(dac_cfg[CONF_VOLUME]))
 
 
 async def register_i2s_reader(reader, config: dict) -> None:
@@ -260,14 +175,3 @@ async def register_i2s_reader(reader, config: dict) -> None:
 
     if CONF_I2S_DIN_PIN in config:
         cg.add(reader.set_din_pin(config[CONF_I2S_DIN_PIN]))
-
-    if CONF_I2S_ADC in config:
-        adc_cfg = config[CONF_I2S_ADC]
-        if adc_cfg["model"] in ["es7210"]:
-            cg.add_define("I2S_EXTERNAL_ADC")
-            adc = cg.new_Pvariable(adc_cfg[CONF_ID])
-            cg.add(reader.set_external_adc(adc))
-            await i2c.register_i2c_device(adc, adc_cfg)
-            if CONF_ENABLE_PIN in adc_cfg:
-                en_pin = await cg.gpio_pin_expression(adc_cfg[CONF_ENABLE_PIN])
-                cg.add(adc.set_gpio_enable(en_pin))

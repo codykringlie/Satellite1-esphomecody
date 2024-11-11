@@ -25,8 +25,6 @@ from esphome.components.i2s_audio import i2s_settings as i2s
 from esphome.components.i2s_audio import (
     CONF_I2S_AUDIO_ID,
     CONF_I2S_DOUT_PIN,
-    CONF_I2S_DAC,
-    CONFIG_SCHEMA_DAC,
     I2SAudioComponent,
     I2SWriter,
     i2s_audio_ns,
