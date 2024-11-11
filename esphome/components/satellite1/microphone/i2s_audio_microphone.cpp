@@ -6,10 +6,6 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
-#ifdef I2S_EXTERNAL_ADC
-#include "../external_adc.h"
-#endif
-
 namespace esphome {
 namespace i2s_audio {
 
@@ -52,12 +48,6 @@ void I2SAudioMicrophone::start_() {
     return;  // Waiting for another i2s to return lock
   }
 
-#ifdef I2S_EXTERNAL_ADC
-  if( this->external_adc_ != nullptr ){
-    this->external_adc_->init_device();
-  }
-#endif
-
 i2s_driver_config_t config = this->get_i2s_cfg();
 
 #if SOC_I2S_SUPPORTS_ADC
@@ -76,12 +66,6 @@ i2s_driver_config_t config = this->get_i2s_cfg();
     this->install_i2s_driver(config);
 
   }
-
-#ifdef I2S_EXTERNAL_ADC
-  if( this->external_adc_ != nullptr ){
-    this->external_adc_->apply_i2s_settings(config);
-  }
-#endif
 
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
