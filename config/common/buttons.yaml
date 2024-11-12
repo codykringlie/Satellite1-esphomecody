@@ -83,9 +83,7 @@ binary_sensor:
   - platform: gpio
     id: btn_action
     pin:
-      satellite1: 
-      port: INPUT_A
-      pin: 1
+      number: 0
       inverted: true
     name: "Button Right (Action)"
     icon: "mdi:gesture-tap"
