@@ -90,7 +90,12 @@ external_components:
       type: local
       path: ../esphome/components
     components: [ i2s_audio, satellite1, pcm5122 ]
-
+  
+  - source:
+      type: git
+      url: https://github.com/esphome/voice-kit
+      ref: dev
+    components: [ microphone ]
 
 packages:
   core_board: !include common/core_board.yaml

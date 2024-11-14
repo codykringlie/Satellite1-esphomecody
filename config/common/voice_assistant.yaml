@@ -24,21 +24,28 @@ globals:
 
 microphone:
   - platform: satellite1
-    id: mic0
     sample_rate: 48000
     i2s_din_pin: GPIO11
     bits_per_sample: 32bit
     i2s_clock_mode: external
     channel: right_left
     pdm: false
-    adc_type: external
-    gain_log2: 6
+    
+    i2s_audio_id: i2s_shared
+    channel_0:
+      id: asr_mic
+      amplify_shift: 6
+    channel_1:
+      id: mic0
+      amplify_shift: 6
+
 
 
 micro_wake_word:
   models:
     - model: hey_jarvis
   vad:
+  microphone: mic0
   on_wake_word_detected:
     # If the wake word is detected when the device is muted (Possible with the software mute switch): Do nothing
     - if:
@@ -80,7 +87,7 @@ micro_wake_word:
 
 voice_assistant:
   id: va
-  microphone: mic0
+  microphone: asr_mic
   media_player: nabu_media_player
   use_wake_word: false
   noise_suppression_level: 0

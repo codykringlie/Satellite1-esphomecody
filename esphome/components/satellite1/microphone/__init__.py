@@ -2,33 +2,47 @@ import esphome.config_validation as cv
 import esphome.codegen as cg
 
 from esphome import pins
-from esphome.const import CONF_CHANNEL, CONF_ID, CONF_MODEL, CONF_NUMBER
+from esphome.const import CONF_ID, CONF_NUMBER
 from esphome.components import microphone, esp32
 from esphome.components.adc import ESP32_VARIANT_ADC1_PIN_TO_CHANNEL, validate_adc_pin
 
-from esphome.components.i2s_audio import i2s_settings as i2s
+from esphome.components.i2s_audio.i2s_settings import (
+    BITS_PER_SAMPLE,
+    CONF_CLK_MODE,
+    I2S_CLK_MODES,
+    EXTERNAL_CLK,
+    CONF_CHANNEL,
+    CONF_FIXED_SETTINGS,
+    CHANNEL_FORMAT,
+    _validate_bits,
+) 
+
 from esphome.components.i2s_audio import (
-    i2s_audio_ns,
     I2SAudioComponent,
     I2SReader,
+    CONF_BITS_PER_SAMPLE,
     CONF_I2S_AUDIO_ID,
     CONF_I2S_DIN_PIN,
-    register_i2s_reader,
+    register_i2s_reader
 )
 
 CODEOWNERS = ["@gnumpi"]
 DEPENDENCIES = ["i2s_audio"]
 
 CONF_ADC_PIN = "adc_pin"
-CONF_ADC_TYPE = "adc_type"
+CONF_AMPLIFY_SHIFT = "amplify_shift"
+CONF_CHANNEL_0 = "channel_0"
+CONF_CHANNEL_1 = "channel_1"
 CONF_PDM = "pdm"
 CONF_SAMPLE_RATE = "sample_rate"
-CONF_BITS_PER_SAMPLE = "bits_per_sample"
 CONF_USE_APLL = "use_apll"
-CONF_GAIN_LOG_2 = "gain_log2"
 
-I2SAudioMicrophone = i2s_audio_ns.class_(
-    "I2SAudioMicrophone", I2SReader, microphone.Microphone, cg.Component
+
+nabu_microphone_ns = cg.esphome_ns.namespace("nabu_microphone")
+
+NabuMicrophone = nabu_microphone_ns.class_("NabuMicrophone", I2SReader, cg.Component)
+NabuMicrophoneChannel = nabu_microphone_ns.class_(
+    "NabuMicrophoneChannel", microphone.Microphone, cg.Component
 )
 
 i2s_channel_fmt_t = cg.global_ns.enum("i2s_channel_fmt_t")
@@ -36,79 +50,76 @@ CHANNELS = {
     "left": i2s_channel_fmt_t.I2S_CHANNEL_FMT_ONLY_LEFT,
     "right": i2s_channel_fmt_t.I2S_CHANNEL_FMT_ONLY_RIGHT,
 }
-i2s_bits_per_sample_t = cg.global_ns.enum("i2s_bits_per_sample_t")
-BITS_PER_SAMPLE = {
-    16: i2s_bits_per_sample_t.I2S_BITS_PER_SAMPLE_16BIT,
-    32: i2s_bits_per_sample_t.I2S_BITS_PER_SAMPLE_32BIT,
-}
-
-INTERNAL_ADC_VARIANTS = [esp32.const.VARIANT_ESP32]
-PDM_VARIANTS = [esp32.const.VARIANT_ESP32, esp32.const.VARIANT_ESP32S3]
-
-_validate_bits = cv.float_with_unit("bits", "bit")
 
 
-def validate_esp32_variant(config):
-    variant = esp32.get_esp32_variant()
-    if config[CONF_ADC_TYPE] == "external":
-        if config[CONF_PDM]:
-            if variant not in PDM_VARIANTS:
-                raise cv.Invalid(f"{variant} does not support PDM")
-        return config
-    if config[CONF_ADC_TYPE] == "internal":
-        if variant not in INTERNAL_ADC_VARIANTS:
-            raise cv.Invalid(f"{variant} does not have an internal ADC")
-        return config
-    raise NotImplementedError
 
-
-BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
+MICROPHONE_CHANNEL_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
     {
-        cv.GenerateID(): cv.declare_id(I2SAudioMicrophone),
+        cv.GenerateID(): cv.declare_id(NabuMicrophoneChannel),
+        cv.Optional(CONF_AMPLIFY_SHIFT, default=0): cv.All(
+            cv.uint8_t, cv.Range(min=0, max=8)
+        ),
+    }
+)
+
+CONFIG_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.declare_id(NabuMicrophone),
         cv.GenerateID(CONF_I2S_AUDIO_ID): cv.use_id(I2SAudioComponent),
-        cv.Optional(CONF_CHANNEL, default="right"): cv.enum(CHANNELS),
-        cv.Optional(CONF_SAMPLE_RATE, default=16000): cv.int_range(min=1),
+        cv.Optional(CONF_SAMPLE_RATE, default=48000): cv.int_range(min=1),
         cv.Optional(CONF_BITS_PER_SAMPLE, default="32bit"): cv.All(
             _validate_bits, cv.enum(BITS_PER_SAMPLE)
         ),
+        cv.Optional(CONF_CLK_MODE, default=EXTERNAL_CLK): cv.enum(I2S_CLK_MODES),
+        cv.Optional(CONF_CHANNEL, default="right_left"): cv.enum(CHANNEL_FORMAT),
         cv.Optional(CONF_USE_APLL, default=False): cv.boolean,
+        cv.Optional(CONF_CHANNEL_0): MICROPHONE_CHANNEL_SCHEMA,
+        cv.Optional(CONF_CHANNEL_1): MICROPHONE_CHANNEL_SCHEMA,
+        
+        cv.Required(CONF_I2S_DIN_PIN): pins.internal_gpio_input_pin_number,
+        cv.Required(CONF_PDM): cv.boolean,
+        cv.Optional(CONF_FIXED_SETTINGS, default=True): cv.boolean,
+    
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
-CONFIG_SCHEMA = cv.All(
-    cv.typed_schema(
-        {
-            "internal": BASE_SCHEMA.extend(
-                {
-                    cv.Required(CONF_ADC_PIN): validate_adc_pin,
-                }
-            ),
-            "external": BASE_SCHEMA.extend(
-                {
-                    cv.Required(CONF_I2S_DIN_PIN): pins.internal_gpio_input_pin_number,
-                    cv.Required(CONF_PDM): cv.boolean,
-                    cv.Optional(CONF_GAIN_LOG_2, default=0): cv.int_range(0, 7),
-                }
-            ).extend(i2s.CONFIG_SCHEMA_I2S_COMMON),
-        },
-        key=CONF_ADC_TYPE,
-    ),
-    validate_esp32_variant,
-)
+
+def _supported_satellite1_settings(config):
+    if config[CONF_PDM] :
+        raise cv.Invalid("PDM is not supported for the Satellite1 microphone integration.")
+    if config[CONF_BITS_PER_SAMPLE] != 32:
+        raise cv.Invalid("I2S needs to be set to 32bit for the satellite1 microphone integration.")
+    if config[CONF_SAMPLE_RATE] != 48000:
+        raise cv.Invalid("I2S needs to be set to 48kHz, downsampling to 16kHz is hard coded.")
+    
+
+
+FINAL_VALIDATE_SCHEMA = _supported_satellite1_settings
+
 
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-    # await cg.register_parented(var, config[CONF_I2S_AUDIO_ID])
 
-    if config[CONF_ADC_TYPE] == "internal":
-        variant = esp32.get_esp32_variant()
-        pin_num = config[CONF_ADC_PIN][CONF_NUMBER]
-        channel = ESP32_VARIANT_ADC1_PIN_TO_CHANNEL[variant][pin_num]
-        cg.add(var.set_adc_channel(channel))
-    else:
-        cg.add(var.set_gain_log2(config[CONF_GAIN_LOG_2]))
-        await register_i2s_reader(var, config)
+    await cg.register_parented(var, config[CONF_I2S_AUDIO_ID])
 
-    await microphone.register_microphone(var, config)
+    if channel_0_config := config.get(CONF_CHANNEL_0):
+        channel_0 = cg.new_Pvariable(channel_0_config[CONF_ID])
+        await cg.register_component(channel_0, channel_0_config)
+        await cg.register_parented(channel_0, config[CONF_ID])
+        await microphone.register_microphone(channel_0, channel_0_config)
+        cg.add(var.set_channel_0(channel_0))
+        cg.add(channel_0.set_amplify_shift(channel_0_config[CONF_AMPLIFY_SHIFT]))
+
+    if channel_1_config := config.get(CONF_CHANNEL_1):
+        channel_1 = cg.new_Pvariable(channel_1_config[CONF_ID])
+        await cg.register_component(channel_1, channel_1_config)
+        await cg.register_parented(channel_1, config[CONF_ID])
+        await microphone.register_microphone(channel_1, channel_1_config)
+        cg.add(var.set_channel_1(channel_1))
+        cg.add(channel_1.set_amplify_shift(channel_1_config[CONF_AMPLIFY_SHIFT]))
+
+    await register_i2s_reader(var, config)
+
+    cg.add_define("USE_OTA_STATE_CALLBACK")
