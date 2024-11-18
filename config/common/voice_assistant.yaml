@@ -34,9 +34,9 @@ microphone:
     i2s_audio_id: i2s_shared
     channel_0:
       id: asr_mic
-      amplify_shift: 6
+      amplify_shift: 0
     channel_1:
-      id: mic0
+      id: comm_mic
       amplify_shift: 6
 
 
@@ -45,7 +45,8 @@ micro_wake_word:
   models:
     - model: hey_jarvis
   vad:
-  microphone: mic0
+  microphone: comm_mic
+  
   on_wake_word_detected:
     # If the wake word is detected when the device is muted (Possible with the software mute switch): Do nothing
     - if:
