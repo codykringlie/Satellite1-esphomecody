@@ -125,6 +125,7 @@ esp_err_t NabuMicrophone::start_i2s_driver_() {
   i2s_driver_config_t config = this->get_i2s_cfg();
   if(!this->install_i2s_driver(config))
   {
+    this->release_i2s_access();
     return ESP_ERR_INVALID_STATE;
   }
   

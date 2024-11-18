@@ -88,7 +88,6 @@ bool I2SAudioComponent::install_i2s_driver_(i2s_driver_config_t i2s_cfg, uint8_t
       }
       success &= ESP_OK == i2s_set_pin(this->get_port(), &pin_config);
       if( success ){
-        this->access_state_ = access;
         this->installed_cfg_ = i2s_cfg;
       }
     }
@@ -97,6 +96,8 @@ bool I2SAudioComponent::install_i2s_driver_(i2s_driver_config_t i2s_cfg, uint8_t
     if (!success ){
       ESP_LOGE(TAG, "incompatible i2s settings for duplex mode, access_state: %d", this->access_state_);
     }
+  } else {
+    ESP_LOGE(TAG, "Unexpected i2s state: mode: %d access_state: %d access_request: %d", (int) this->access_mode_, (int) this->access_state_, (int) access);
   }
   this->unlock();
   return success;
