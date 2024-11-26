@@ -1,0 +1,22 @@
+ld2410:
+
+
+uart:
+  tx_pin: GPIO43
+  rx_pin: GPIO44
+  baud_rate: 256000
+  parity: NONE
+  stop_bits: 1
+
+
+binary_sensor:
+  - platform: ld2410
+    has_target:
+      name: Room Presence
+      id: room_presence
+    has_moving_target:
+      name: Moving Target
+    has_still_target:
+      name: Still Target
+    out_pin_presence_status:
+      name: out pin presence status

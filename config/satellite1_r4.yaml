@@ -110,7 +110,7 @@ packages:
   # timer requires voice_assistant.yaml
   timer: !include common/timer.yaml
   led_ring: !include common/led_ring.yaml  
-  
+  ld2410: !include common/ld2410.yaml
   #debug: !include common/debug.yaml
 
 
