@@ -8,8 +8,13 @@ globals:
     restore_value: no
     initial_value: '0'
 
-light:
-  - platform: ${led_ring_platform}
+light:  
+ -  platform: esp32_rmt_led_strip
+    pin: GPIO21
+    rmt_channel: 1
+    num_leds: 24
+    rgb_order: GRB
+    chipset: WS2812
     id: satellite1_led_ring
     name: LED Ring
     entity_category: config
