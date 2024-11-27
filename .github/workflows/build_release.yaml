@@ -70,16 +70,6 @@ jobs:
           echo "label_version=$(echo "${{ steps.set_release_tag.outputs.release_tag }}" | sed 's/\./dot/g' | sed 's/-/dash/g')" >> $GITHUB_OUTPUT
           echo "previous_tag=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
           echo "files=$(ls config/satellite*.yaml | jq --slurp --raw-input )" >> $GITHUB_OUTPUT
-      
-      - name: Update YAML files
-        run: |
-          files=$(echo "${{ steps.dump.outputs.files }}" | sed 's/^"//' | sed 's/"$//' | sed 's/\\n/\n/g')
-          tag="${{ steps.set_release_tag.outputs.release_tag }}"
-          for file in $files; do
-            echo "Updating $file"
-            # Use sed to match the esp32_fw_version line and replace its value
-            sed -i "s/^\(\s*esp32_fw_version:\s*\).*/\1\"${tag}\"/" "$file"
-          done
 
   build-firmware:
     name: Build Firmware

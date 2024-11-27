@@ -1,140 +1,140 @@
-# name: Build-Satellite-Firmware
+name: Build-Satellite-Firmware
 
-# on:
-#   push:
-#     branches:
-#       - main
-#       - develop
-#   pull_request:
-#   workflow_dispatch:
-#   release:
-#     types: [published]
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
 
-# env:
-#   DEFAULT_PYTHON: "3.9"
+env:
+  DEFAULT_PYTHON: "3.9"
 
-# jobs:
-#   build-list:    
-#     runs-on: ubuntu-latest
-#     outputs:
-#       build_firmware:  ${{ steps.final_list.outputs.build_firmware }} 
-#       build_cfg_files: ${{ steps.final_list.outputs.files }}
-#     steps:
-#       - name: Check out code from GitHub
-#         uses: actions/checkout@v4.1.6  
+jobs:
+  build-list:    
+    runs-on: ubuntu-latest
+    outputs:
+      build_firmware:  ${{ steps.final_list.outputs.build_firmware }} 
+      build_cfg_files: ${{ steps.final_list.outputs.files }}
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v4.1.6  
       
-#       - name: Find all YAML satellite files
-#         id: all-satellite-files
-#         run: |
-#           echo "matrix=$(ls config/satellite*.yaml | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
-#           echo "all_files=$(ls config/satellite*.yaml | jq --slurp --raw-input )" >> $GITHUB_OUTPUT
+      - name: Find all YAML satellite files
+        id: all-satellite-files
+        run: |
+          echo "matrix=$(ls config/satellite*.yaml | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "all_files=$(ls config/satellite*.yaml | jq --slurp --raw-input )" >> $GITHUB_OUTPUT
       
-#       - name: Get changed files
-#         id: changed-files
-#         uses: tj-actions/changed-files@v44
-#         with:
-#           # Avoid using single or double quotes for multiline patterns
-#           files_yaml: |
-#             core:
-#              - config/satellite*.yaml
-#             includes:
-#               - config/common/*.yaml
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          # Avoid using single or double quotes for multiline patterns
+          files_yaml: |
+            core:
+             - config/satellite*.yaml
+            includes:
+              - config/common/*.yaml
 
-#       - name: create actual list
-#         id: final_list
-#         env:
-#           INCLUDES_CHANGED: ${{ steps.changed-files.outputs.includes_any_changed }}
-#           CORE_HAS_CHANGED:   ${{ steps.changed-files.outputs.core_any_changed }}
-#           CHANGED_CORE_FILES: ${{ steps.changed-files.outputs.core_all_changed_files }}
-#           EVENT: ${{github.event_name}}
-#         run: |
-#           if [[ ${INCLUDES_CHANGED} == "true" || $EVENT == "release" ]]; then
-#             echo "build_firmware=true" >> $GITHUB_OUTPUT
-#             echo "matrix=$(ls config/satellite*.yaml | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
-#             echo "files=$(ls config/satellite*.yaml | jq --slurp --raw-input )" >> $GITHUB_OUTPUT
-#           elif [[ ${CORE_HAS_CHANGED} == "true" ]]; then
-#             ARR=()
-#             for file in ${CHANGED_CORE_FILES}; do
-#               echo "$file was changed"
-#               ARR+=($file)
-#             done
-#             echo "build_firmware=true" >> $GITHUB_OUTPUT
-#             echo "matrix=$( printf '%s\n' "${ARR[@]}" | jq --slurp --raw-input)" >> $GITHUB_OUTPUT
-#             echo "files=$( printf '%s\n' "${ARR[@]}" | jq --slurp --raw-input)" >> $GITHUB_OUTPUT
-#           else
-#             echo "build_firmware=false" >> $GITHUB_OUTPUT
-#             echo "matrix=''" >> $GITHUB_OUTPUT
-#             echo "files=''" >> $GITHUB_OUTPUT
-#           fi
+      - name: create actual list
+        id: final_list
+        env:
+          INCLUDES_CHANGED: ${{ steps.changed-files.outputs.includes_any_changed }}
+          CORE_HAS_CHANGED:   ${{ steps.changed-files.outputs.core_any_changed }}
+          CHANGED_CORE_FILES: ${{ steps.changed-files.outputs.core_all_changed_files }}
+          EVENT: ${{github.event_name}}
+        run: |
+          if [[ ${INCLUDES_CHANGED} == "true" || $EVENT == "release" ]]; then
+            echo "build_firmware=true" >> $GITHUB_OUTPUT
+            echo "matrix=$(ls config/satellite*.yaml | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+            echo "files=$(ls config/satellite*.yaml | jq --slurp --raw-input )" >> $GITHUB_OUTPUT
+          elif [[ ${CORE_HAS_CHANGED} == "true" ]]; then
+            ARR=()
+            for file in ${CHANGED_CORE_FILES}; do
+              echo "$file was changed"
+              ARR+=($file)
+            done
+            echo "build_firmware=true" >> $GITHUB_OUTPUT
+            echo "matrix=$( printf '%s\n' "${ARR[@]}" | jq --slurp --raw-input)" >> $GITHUB_OUTPUT
+            echo "files=$( printf '%s\n' "${ARR[@]}" | jq --slurp --raw-input)" >> $GITHUB_OUTPUT
+          else
+            echo "build_firmware=false" >> $GITHUB_OUTPUT
+            echo "matrix=''" >> $GITHUB_OUTPUT
+            echo "files=''" >> $GITHUB_OUTPUT
+          fi
  
-#   build-firmware:
-#     if: needs.build-list.outputs.build_firmware == 'true'
-#     name: Build Firmware
-#     needs:
-#       - build-list
-#     uses: esphome/workflows/.github/workflows/build.yml@main
-#     with:
-#       files: ${{ fromJSON(needs.build-list.outputs.build_cfg_files) }}
-#       esphome-version: 2024.10.0
-#       release-summary: ${{ github.event_name == 'release' && github.event.release.body || '' }}
-#       release-url: ${{ github.event_name == 'release' && github.event.release.html_url || '' }}
-#       release-version: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
+  build-firmware:
+    if: needs.build-list.outputs.build_firmware == 'true'
+    name: Build Firmware
+    needs:
+      - build-list
+    uses: esphome/workflows/.github/workflows/build.yml@main
+    with:
+      files: ${{ fromJSON(needs.build-list.outputs.build_cfg_files) }}
+      esphome-version: 2024.10.0
+      release-summary: ${{ github.event_name == 'release' && github.event.release.body || '' }}
+      release-url: ${{ github.event_name == 'release' && github.event.release.html_url || '' }}
+      release-version: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
   
   
-#   create_artifact_matrix:
-#     name: Create artifact matrix
-#     needs:
-#       - build-firmware
-#     outputs:
-#       matrix: ${{ steps.artifacts.outputs.matrix }}
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Download artifacts
-#         uses: actions/download-artifact@v4.1.8
-#         with:
-#           path: files
+  create_artifact_matrix:
+    name: Create artifact matrix
+    needs:
+      - build-firmware
+    outputs:
+      matrix: ${{ steps.artifacts.outputs.matrix }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4.1.8
+        with:
+          path: files
       
-#       - run: tree
+      - run: tree
       
-#       - name: Get artifact names
-#         id: artifacts
-#         run: |
-#           artifacts=$(ls --format=single-column files)
-#           echo "artifacts<<EOF" >> $GITHUB_OUTPUT
-#           echo "$artifacts" >> $GITHUB_OUTPUT
-#           echo "EOF" >> $GITHUB_OUTPUT 
-#           echo "matrix=$(ls files | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+      - name: Get artifact names
+        id: artifacts
+        run: |
+          artifacts=$(ls --format=single-column files)
+          echo "artifacts<<EOF" >> $GITHUB_OUTPUT
+          echo "$artifacts" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT 
+          echo "matrix=$(ls files | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
   
   
-#   upload_release_asset:
-#     if: github.event_name == 'release'
-#     name: Upload as release asset
-#     needs:
-#       - create_artifact_matrix
-#     runs-on: ubuntu-latest
-#     strategy:
-#       fail-fast: false
-#       max-parallel: 3
-#       matrix:
-#         file: ${{fromJSON(needs.create_artifact_matrix.outputs.matrix) }}
-#     steps:
-#       - name: debug 
-#         id: debug_matrix
-#         run: |
-#           echo ${{matrix.file}}
+  upload_release_asset:
+    if: github.event_name == 'release'
+    name: Upload as release asset
+    needs:
+      - create_artifact_matrix
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        file: ${{fromJSON(needs.create_artifact_matrix.outputs.matrix) }}
+    steps:
+      - name: debug 
+        id: debug_matrix
+        run: |
+          echo ${{matrix.file}}
       
-#       - name: zip it # This would actually build your project, using zip for an example artifact
-#         run: |
-#           zip --junk-paths ${{matrix.file}} files/${{matrix.file}}/**
+      - name: zip it # This would actually build your project, using zip for an example artifact
+        run: |
+          zip --junk-paths ${{matrix.file}} files/${{matrix.file}}/**
       
-#       - name: Upload Release Asset - Zip file
-#         id: upload-release-asset-zip
-#         uses: actions/upload-release-asset@v1
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#         with:
-#           upload_url: ${{ github.event.release.upload_url }}
-#           asset_path: ${{ matrix.file }}.zip
-#           asset_name: ${{ matrix.file }}
-#           asset_content_type: application/octet-stream  
+      - name: Upload Release Asset - Zip file
+        id: upload-release-asset-zip
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ matrix.file }}.zip
+          asset_name: ${{ matrix.file }}
+          asset_content_type: application/octet-stream  
         
