@@ -89,7 +89,7 @@ external_components:
   - source:
       type: local
       path: ../esphome/components
-    components: [ i2s_audio, satellite1, pcm5122, fusb302b ]
+    components: [ i2s_audio, satellite1, pcm5122 ]
   
   - source:
       type: git

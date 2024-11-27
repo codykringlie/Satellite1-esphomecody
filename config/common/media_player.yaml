@@ -10,23 +10,7 @@ i2s_audio:
 audio_dac:
   - platform: pcm5122
     address: 0x4D
-fusb302b:
-  id: pd_fusb302b
-  irq_pin: GPIO1
-  request_voltage: 9
-  on_power_ready:
-    then:
-      - logger.log: 
-          format: "PD contract got accepted: %s"
-          args: [ 'id(pd_fusb302b).contract.c_str()' ]
-      - text_sensor.template.publish:
-          id: pd_state_text
-          state: !lambda 'return id(pd_fusb302b).contract;'
-  on_disconnect:
-      - text_sensor.template.publish:
-          id: pd_state_text
-          state: "Detached"
-  
+
 media_player:
   - platform: satellite1
     id: nabu_media_player
