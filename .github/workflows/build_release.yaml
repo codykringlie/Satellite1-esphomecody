@@ -44,12 +44,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # To create a major bump add #major to commit message
-          DEFAULT_BUMP: 'patch'
+          DEFAULT_BUMP: ${{ github.ref_name == 'main' && 'minor' || github.ref_name == 'staging' && 'minor' || 'patch' }}
           WITH_V: true
           PRERELEASE: ${{ github.ref_name != 'main' }}
           PRERELEASE_SUFFIX: ${{ github.ref_name == 'staging' && 'beta' || 'alpha' }}
           DRY_RUN: true # Prevent action from pushing the tag.
-          INITIAL_VERSION: 0.0.0
+          INITIAL_VERSION: 1.0.0
 
       - name: Set tag for release
         if: ${{ steps.set_tag.outputs.manual_tag || steps.bump.outputs.tag }}
@@ -102,12 +102,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # To create a major bump add #major to commit message
-          DEFAULT_BUMP: 'patch'
+          DEFAULT_BUMP: ${{ github.ref_name == 'main' && 'minor' || github.ref_name == 'staging' && 'minor' || 'patch' }}
           WITH_V: true
           PRERELEASE: ${{ github.ref_name != 'main' }}
           PRERELEASE_SUFFIX: ${{ github.ref_name == 'staging' && 'beta' || 'alpha' }}
           DRY_RUN: false # Set the tag to the commit.
-          INITIAL_VERSION: 0.0.0
+          INITIAL_VERSION: 1.0.0
 
       - name: Release Changelog Builder
         id: changelog
@@ -117,8 +117,6 @@ jobs:
 
   create_release:
     name: Create Release
-    # only build release for staging and main branches
-    if: github.ref_name == 'main' || github.ref_name == 'staging' 
     needs:
       - push-tag
       - prepare
@@ -134,11 +132,12 @@ jobs:
           mkdir -p build
           echo "Copying all files to build directory"
           find files -name "*.bin" -exec cp {} build/ \;
+          zip -r build.zip build
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/*.bin
+          files: build.zip
           generate_release_notes: true
           append_body: true
           body: ${{ needs.push-tag.outputs.changelog }}
