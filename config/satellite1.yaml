@@ -9,7 +9,7 @@ substitutions:
   component_name: Core
   
   esp32_fw_version: "v2.0.0-alpha.8"
-  xmos_fw_version: "v1.0.1-alpha.32"
+  xmos_fw_version: "v1.0.1-alpha.33"
   built_for_core_hw_version: "v1.0.0-beta.1"
   built_for_hat_hw_version: "v1.0.0-beta.1"
 
@@ -128,17 +128,18 @@ http_request:
 safe_mode:
 
 status_led:
-  pin: GPIO45
+  pin:
+    number: GPIO45
+    ignore_strapping_warning: true
 
 
 satellite1:
   spi_id: spi_0
-  cs_pin: GPIO38
-  data_rate: 4000000
+  cs_pin: GPIO10
+  data_rate: 8000000
   spi_mode: MODE3
-  xmos_rst_pin: GPIO12
-  flash_sw_pin: GPIO14
-
+  xmos_rst_pin: GPIO4
+  
 
 
    

@@ -25,7 +25,7 @@ globals:
 microphone:
   - platform: satellite1
     sample_rate: 48000
-    i2s_din_pin: GPIO11
+    i2s_din_pin: GPIO15
     bits_per_sample: 32bit
     i2s_clock_mode: external
     channel: right_left
