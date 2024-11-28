@@ -2,6 +2,10 @@ substitutions:
   #Change to any preferred name
   friendly_name: "Satellite1"  
 
+  #Change to calibrate your temperature/humidity sensor readings
+  temp_offset: "-3"
+  humidity_offset: "5"
+
   #Recommend leaving the following unchanged
   node_name: satellite1
   company_name: FutureProofHomes
