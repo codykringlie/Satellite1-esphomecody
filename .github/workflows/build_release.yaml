@@ -78,7 +78,7 @@ jobs:
     uses: esphome/workflows/.github/workflows/build.yml@main
     with:
       files: ${{ fromJSON(needs.prepare.outputs.build_cfg_files) }}
-      esphome-version: 2024.10.0
+      esphome-version: 2024.11.2
       release-version: ${{ needs.prepare.outputs.next_tag }}
 
   push-tag:
