@@ -15,9 +15,8 @@ sensor:
       filters:
         - offset: ${humidity_offset}
         - lambda: "return x + id(humidity_offset_ui).state;"
-  #   update_interval: 60s
+  
 
-  # TODO: @gnumpi, how to we add offset capability to custom component?
   - platform: ltr_als_ps
     address: 0x29
     type: ALS
