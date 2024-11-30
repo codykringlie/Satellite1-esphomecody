@@ -21,7 +21,6 @@ jobs:
   prepare:
     runs-on: ubuntu-latest
     outputs:
-      build_cfg_files: ${{ steps.dump.outputs.files }} # list of files separated by \n
       commit_id: ${{ steps.dump.outputs.commit }}
       previous_tag: ${{ steps.dump.outputs.previous_tag }}
       next_tag: ${{ steps.set_release_tag.outputs.release_tag }}
@@ -69,7 +68,7 @@ jobs:
           echo "long_version=${{ steps.set_release_tag.outputs.release_tag }}_$(date +%Y-%m-%d)_$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
           echo "label_version=$(echo "${{ steps.set_release_tag.outputs.release_tag }}" | sed 's/\./dot/g' | sed 's/-/dash/g')" >> $GITHUB_OUTPUT
           echo "previous_tag=$(git describe --abbrev=0 --tags)" >> $GITHUB_OUTPUT
-          echo "files=$(ls config/satellite*.yaml | jq --slurp --raw-input )" >> $GITHUB_OUTPUT
+          
 
   build-firmware:
     name: Build Firmware
@@ -77,7 +76,8 @@ jobs:
       - prepare
     uses: esphome/workflows/.github/workflows/build.yml@main
     with:
-      files: ${{ fromJSON(needs.prepare.outputs.build_cfg_files) }}
+      files: |
+        config/satellite1.yaml
       esphome-version: 2024.11.2
       release-version: ${{ needs.prepare.outputs.next_tag }}
 

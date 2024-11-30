@@ -14,67 +14,12 @@ env:
   DEFAULT_PYTHON: "3.9"
 
 jobs:
-  build-list:    
-    runs-on: ubuntu-latest
-    outputs:
-      build_firmware:  ${{ steps.final_list.outputs.build_firmware }} 
-      build_cfg_files: ${{ steps.final_list.outputs.files }}
-    steps:
-      - name: Check out code from GitHub
-        uses: actions/checkout@v4.1.6  
-      
-      - name: Find all YAML satellite files
-        id: all-satellite-files
-        run: |
-          echo "matrix=$(ls config/satellite*.yaml | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
-          echo "all_files=$(ls config/satellite*.yaml | jq --slurp --raw-input )" >> $GITHUB_OUTPUT
-      
-      - name: Get changed files
-        id: changed-files
-        uses: tj-actions/changed-files@v44
-        with:
-          # Avoid using single or double quotes for multiline patterns
-          files_yaml: |
-            core:
-             - config/satellite*.yaml
-            includes:
-              - config/common/*.yaml
-
-      - name: create actual list
-        id: final_list
-        env:
-          INCLUDES_CHANGED: ${{ steps.changed-files.outputs.includes_any_changed }}
-          CORE_HAS_CHANGED:   ${{ steps.changed-files.outputs.core_any_changed }}
-          CHANGED_CORE_FILES: ${{ steps.changed-files.outputs.core_all_changed_files }}
-          EVENT: ${{github.event_name}}
-        run: |
-          if [[ ${INCLUDES_CHANGED} == "true" || $EVENT == "release" ]]; then
-            echo "build_firmware=true" >> $GITHUB_OUTPUT
-            echo "matrix=$(ls config/satellite*.yaml | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
-            echo "files=$(ls config/satellite*.yaml | jq --slurp --raw-input )" >> $GITHUB_OUTPUT
-          elif [[ ${CORE_HAS_CHANGED} == "true" ]]; then
-            ARR=()
-            for file in ${CHANGED_CORE_FILES}; do
-              echo "$file was changed"
-              ARR+=($file)
-            done
-            echo "build_firmware=true" >> $GITHUB_OUTPUT
-            echo "matrix=$( printf '%s\n' "${ARR[@]}" | jq --slurp --raw-input)" >> $GITHUB_OUTPUT
-            echo "files=$( printf '%s\n' "${ARR[@]}" | jq --slurp --raw-input)" >> $GITHUB_OUTPUT
-          else
-            echo "build_firmware=false" >> $GITHUB_OUTPUT
-            echo "matrix=''" >> $GITHUB_OUTPUT
-            echo "files=''" >> $GITHUB_OUTPUT
-          fi
- 
+  
   build-firmware:
-    if: needs.build-list.outputs.build_firmware == 'true'
-    name: Build Firmware
-    needs:
-      - build-list
     uses: esphome/workflows/.github/workflows/build.yml@main
     with:
-      files: ${{ fromJSON(needs.build-list.outputs.build_cfg_files) }}
+      files: |
+        config/satellite1.yaml
       esphome-version: 2024.11.2
       release-summary: ${{ github.event_name == 'release' && github.event.release.body || '' }}
       release-url: ${{ github.event_name == 'release' && github.event.release.html_url || '' }}
