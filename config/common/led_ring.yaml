@@ -16,7 +16,7 @@ light:
     rgb_order: GRB
     chipset: WS2812
     
-  # User facing LED ring. Remapping of the internal LEDs.
+  # User facing LED ring. Remapping of the hardware LEDs.
   # Exposed to be used by the user.
   - platform: partition
     id: led_ring
@@ -36,7 +36,7 @@ light:
         from: 0
         to: 23
 
-  # Voice Assistant LED ring. Remapping of the internal LED.
+  # Voice Assistant LED ring. Remapping of the hardware LED.
   # This light is not exposed. The device controls it
   - platform: partition
     id: voice_assistant_leds
@@ -389,23 +389,6 @@ light:
             }
             index = (index + 1) % 24;
       - addressable_lambda:
-          name: "Flashing XMOS"
-          update_interval: 333ms
-          lambda: |-
-            static uint8_t index = 0;
-            Color color(255, 0, 0);
-            if (initial_run) {
-              index = 0;
-            }
-            for (int i = 0; i < 24; i++) {
-              if (i <= index ) {
-                it[i] = Color::BLACK;
-              } else {
-                it[i] = color;
-              }
-            }
-            index = (index + 1) % 24;
-      - addressable_lambda:
           name: "Factory Reset Coming Up"
           update_interval: 500ms
           lambda: |-
@@ -488,8 +471,6 @@ script:
             id(control_leds_init_state).execute();
           } else if (!id(wifi_id).is_connected() || !id(api_id).is_connected()){
             id(control_leds_no_ha_connection_state).execute();
-          } else if (id(xmos_flashing_started)) {
-            id(control_leds_xmos_flashing_started).execute();
           } else if (id(volume_buttons_touched)) {
             id(control_leds_volume_buttons_touched).execute();
           } else if (id(btn_action).state) {
@@ -719,11 +700,4 @@ script:
           id: voice_assistant_leds
           effect: "Timer tick"
 
-  # Script executed when the timer is ticking, to control the LEDs
-  # The LEDs shows the remaining time as a fraction of the full ring.
-  - id: control_leds_xmos_flashing_started
-    then:
-      - light.turn_on:
-          brightness: !lambda return min ( max( id(led_ring).current_values.get_brightness() , 0.2f ) + 0.1f , 1.0f );
-          id: voice_assistant_leds
-          effect: "Flashing XMOS"
+  
