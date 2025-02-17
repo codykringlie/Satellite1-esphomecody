@@ -1,3 +1,10 @@
+external_components:  
+  - source:
+      type: git
+      url: https://github.com/FutureProofHomes/Satellite1-ESPHome
+      ref: develop
+    components: [ version ]
+
 debug:
   update_interval: 5s
 
@@ -31,6 +38,11 @@ text_sensor:
     icon: "mdi:chip"
     lambda: |-
       return std::string("${built_for_hat_hw_version}");
+  
+  - platform: version
+    name: "Firmware Version"
+    hide_timestamp: true
+
 
 sensor:
   - platform: debug
@@ -56,6 +68,14 @@ button:
   - platform: safe_mode
     name: "Restart Sat1 (Safe Mode)"
     entity_category: diagnostic
+  
+  - platform: template
+    id: xmos_hardware_reset
+    name: "XMOS Hardware Reset"
+    entity_category: diagnostic
+    on_press:
+      then:
+        - satellite1.xmos_hardware_reset
 
   # Flashes Sat1 HAT with specific XMOS firmware
   - platform: template
