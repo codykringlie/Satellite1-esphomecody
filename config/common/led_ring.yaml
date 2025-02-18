@@ -589,7 +589,7 @@ script:
                 effect: "Twinkle"
           else:
             - light.turn_on:
-                brightness: 66%
+                brightness: 33%
                 red: 100%
                 green: 89%
                 blue: 71%
