@@ -6,6 +6,16 @@
 namespace esphome {
 namespace satellite1 {
 
+template<typename... Ts> 
+class XMOSHardwareResetAction : public Action<Ts...>, public Parented<Satellite1> {
+ public:
+  void play(Ts... x) override {
+    this->parent_->xmos_hardware_reset();
+  }
+};
+
+
+
 template<Satellite1State State> class Satellite1StateTrigger : public Trigger<> {
  public:
   explicit Satellite1StateTrigger(Satellite1 *sat1) {

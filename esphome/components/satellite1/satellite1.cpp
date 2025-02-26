@@ -184,6 +184,13 @@ bool Satellite1::check_for_xmos_(){
   return ( memcmp(this->xmos_fw_version, compare_zeros, 5) != 0 );
 }
 
+void Satellite1::xmos_hardware_reset(){
+  this->xmos_rst_pin_->digital_write(1);
+  delay(100);
+  this->xmos_rst_pin_->digital_write(0);
+  delay(100);
+}
+
 
 }
 }

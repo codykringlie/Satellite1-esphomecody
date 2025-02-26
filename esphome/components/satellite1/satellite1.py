@@ -10,16 +10,21 @@ namespace = cg.esphome_ns.namespace("satellite1")
 Satellite1 = namespace.class_("Satellite1", SPIDevice, cg.Component)
 Satellite1SPIService = namespace.class_("Satellite1SPIService", cg.Parented.template(Satellite1))
 
+
+XMOSHardwareResetAction = namespace.class_(
+    "XMOSHardwareResetAction", automation.Action
+)
+
 XMOSConnectedStateTrigger = namespace.class_(
-    "XMOSConnectedStateTrigger", automation.Action
+    "XMOSConnectedStateTrigger", automation.Trigger
 )
 
 FlashConnectedStateTrigger = namespace.class_(
-    "FlashConnectedStateTrigger", automation.Action
+    "FlashConnectedStateTrigger", automation.Trigger
 )
 
 XMOSNoResponseStateTrigger = namespace.class_(
-    "XMOSNoResponseStateTrigger", automation.Action
+    "XMOSNoResponseStateTrigger", automation.Trigger
 )
 
 
@@ -70,3 +75,19 @@ async def register_satellite1(config) :
          await automation.build_automation(trigger, [], conf)
     
     return var
+
+
+RESET_XMOS_ACTION_SCHEMA = automation.maybe_simple_id(
+    {
+        cv.GenerateID(CONF_SATELLITE1): cv.use_id(Satellite1)
+    }
+)
+@automation.register_action(
+    "satellite1.xmos_hardware_reset", 
+    XMOSHardwareResetAction, 
+    RESET_XMOS_ACTION_SCHEMA)
+async def erase_memory_action_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_SATELLITE1])
+    return var
+
