@@ -51,6 +51,9 @@ sensor:
     entity_category: "diagnostic"
     update_interval: 60s
 
+  - platform: internal_temperature
+    name: "Internal ESP Temperature"
+
 button:
   # Restarts Sat1 to safe mode
   - platform: safe_mode
