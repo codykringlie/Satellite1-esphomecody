@@ -50,6 +50,10 @@ sensor:
     name: "Wi-Fi Signal Strength"
     entity_category: "diagnostic"
     update_interval: 60s
+  - platform: internal_temperature
+    name: "Internal Temperature"
+    entity_category: "diagnostic"
+    update_interval: 60s
 
 button:
   # Restarts Sat1 to safe mode
