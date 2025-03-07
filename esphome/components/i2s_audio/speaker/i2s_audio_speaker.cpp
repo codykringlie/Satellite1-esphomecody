@@ -139,8 +139,8 @@ void I2SAudioSpeaker::loop() {
     this->status_set_error("Failed to adjust I2S bus to match the incoming audio");
     ESP_LOGE(TAG,
              "Incompatible audio format: sample rate = %" PRIu32 ", channels = %" PRIu8 ", bits per sample = %" PRIu8,
-             this->audio_stream_info_.sample_rate, this->audio_stream_info_.channels,
-             this->audio_stream_info_.bits_per_sample);
+             this->audio_stream_info_.get_sample_rate(), this->audio_stream_info_.get_channels(),
+             this->audio_stream_info_.get_bits_per_sample());
 }
 
   if (event_group_bits & SpeakerEventGroupBits::ALL_ERR_ESP_BITS) {
@@ -236,8 +236,8 @@ void I2SAudioSpeaker::speaker_task(void *params) {
   xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::STATE_STARTING);
 
   audio::AudioStreamInfo audio_stream_info = this_speaker->audio_stream_info_;
-  const ssize_t bytes_per_sample = audio_stream_info.get_bytes_per_sample();
-  const uint8_t number_of_channels = audio_stream_info.channels;
+  const ssize_t bytes_per_sample = audio_stream_info.get_bits_per_sample() / 8;
+  const uint8_t number_of_channels = audio_stream_info.get_channels();
 
   const size_t dma_buffers_size = 3 * DMA_BUFFER_DURATION_MS * this_speaker->sample_rate_ / 1000 *
                                   bytes_per_sample * number_of_channels;
@@ -289,18 +289,18 @@ void I2SAudioSpeaker::speaker_task(void *params) {
       if (bytes_read > 0) {
         size_t bytes_written = 0;
 
-        if ((audio_stream_info.bits_per_sample == 16) && (this_speaker->q15_volume_factor_ < INT16_MAX)) {
+        if ((audio_stream_info.get_bits_per_sample() == 16) && (this_speaker->q15_volume_factor_ < INT16_MAX)) {
           // Scale samples by the volume factor in place
           q15_multiplication((int16_t *) this_speaker->data_buffer_, (int16_t *) this_speaker->data_buffer_,
                              bytes_read / sizeof(int16_t), this_speaker->q15_volume_factor_);
         }
 
-        if (audio_stream_info.bits_per_sample == (uint8_t) this_speaker->bits_per_sample_) {
+        if (audio_stream_info.get_bits_per_sample() == (uint8_t) this_speaker->bits_per_sample_) {
           i2s_write(this_speaker->parent_->get_port(), this_speaker->data_buffer_, bytes_read, &bytes_written,
                     portMAX_DELAY);
-        } else if (audio_stream_info.bits_per_sample < (uint8_t) this_speaker->bits_per_sample_) {
+        } else if (audio_stream_info.get_bits_per_sample() < (uint8_t) this_speaker->bits_per_sample_) {
           i2s_write_expand(this_speaker->parent_->get_port(), this_speaker->data_buffer_, bytes_read,
-                           audio_stream_info.bits_per_sample, this_speaker->bits_per_sample_, &bytes_written,
+                           audio_stream_info.get_bits_per_sample(), this_speaker->bits_per_sample_, &bytes_written,
                            portMAX_DELAY);
         }
 
@@ -428,12 +428,12 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_() {
 }
 
 esp_err_t I2SAudioSpeaker::reconfigure_i2s_stream_info_(audio::AudioStreamInfo &audio_stream_info) {
-   if (this->sample_rate_ != audio_stream_info.sample_rate) {
+   if (this->sample_rate_ != audio_stream_info.get_sample_rate()) {
     // Can't reconfigure I2S bus, so the sample rate must match the configured value
     return ESP_ERR_INVALID_ARG;
   }
 
-  if ((i2s_bits_per_sample_t) audio_stream_info.bits_per_sample > this->bits_per_sample_) {
+  if ((i2s_bits_per_sample_t) audio_stream_info.get_bits_per_sample() > this->bits_per_sample_) {
     // Currently can't handle the case when the incoming audio has more bits per sample than the configured value
     return ESP_ERR_INVALID_ARG;
   }
