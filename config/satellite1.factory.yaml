@@ -31,7 +31,6 @@ packages:
           - if:
               condition:
                 - lambda: return id(init_in_progress);
-                - lambda: return id(xflash).flash_accessible();
                 - lambda: return id(xflash).has_image_embedded();
               then:
                 - memory_flasher.write_embedded_image:
