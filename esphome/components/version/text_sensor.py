@@ -42,4 +42,4 @@ async def to_code(config):
     var = await text_sensor.new_text_sensor(config)
     await cg.register_component(var, config)
     cg.add(var.set_hide_timestamp(config[CONF_HIDE_TIMESTAMP]))
-    cg.add(var.set_git_commit(get_current_commit_hash()))
+    cg.add(var.set_git_commit(get_current_commit_hash() or "NoGit"))
