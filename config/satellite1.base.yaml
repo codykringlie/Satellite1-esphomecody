@@ -71,7 +71,8 @@ external_components:
       #ref: 2024.12.10-fph.2
       type: local
       path: /Users/mischa/Projects/FutureProofHomes/fph-ha-voice-pe/esphome/components
-    components: [ microphone, voice_assistant, audio_dac, media_player, nabu, micro_wake_word ]
+    #components: [ microphone, voice_assistant, audio_dac, media_player, nabu, micro_wake_word ]
+    components: [ microphone, voice_assistant, audio_dac, micro_wake_word ]
 
 ota:
   - platform: esphome

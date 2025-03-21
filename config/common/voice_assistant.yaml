@@ -70,10 +70,10 @@ micro_wake_word:
               else:
                 - if:
                     condition:
-                      lambda: return id(nabu_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
+                      lambda: return id(external_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
                     then:
                       lambda: |-
-                        id(nabu_media_player)
+                        id(external_media_player)
                           ->make_call()
                           .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP)
                           .set_announcement(true)
@@ -96,7 +96,7 @@ micro_wake_word:
 voice_assistant:
   id: va
   microphone: asr_mic
-  media_player: nabu_media_player
+  media_player: external_media_player
   micro_wake_word: mww
   use_wake_word: false
   noise_suppression_level: 0
@@ -120,9 +120,11 @@ voice_assistant:
         then:
           - lambda: id(voice_assistant_phase) = ${voice_assist_error_phase_id};
           - script.execute: control_leds
+  
   # When the voice assistant starts: Play a wake up sound, duck audio.
   on_start:
-    - nabu.set_ducking:
+    - mixer_speaker.apply_ducking:
+        id: media_mixing_input
         decibel_reduction: 20   # Number of dB quieter; higher implies more quiet, 0 implies full volume
         duration: 0.0s          # The duration of the transition (default is 0)
   on_listening:
@@ -145,7 +147,8 @@ voice_assistant:
         not:
           voice_assistant.is_running:
     # Stop ducking audio.
-    - nabu.set_ducking:
+    - mixer_speaker.apply_ducking:
+        id: media_mixing_input
         decibel_reduction: 0   # 0 dB means no reduction
         duration: 1.0s
     # Stop the script that would potentially enable the stop word if the response is longer than a second

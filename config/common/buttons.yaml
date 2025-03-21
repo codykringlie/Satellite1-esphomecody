@@ -136,10 +136,10 @@ binary_sensor:
                     else:
                       - if:
                           condition:
-                            lambda: return id(nabu_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
+                            lambda: return id(external_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
                           then:
                             - lambda: |
-                                id(nabu_media_player)
+                                id(external_media_player)
                                   ->make_call()
                                   .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP)
                                   .set_announcement(true)

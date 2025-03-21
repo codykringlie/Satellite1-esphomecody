@@ -22,23 +22,25 @@ switch:
       # Stop any current annoucement (ie: stop the timer ring mid playback)
       - if:
           condition:
-            lambda: return id(nabu_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
+            lambda: return id(external_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
           then:
             lambda: |-
-              id(nabu_media_player)
+              id(external_media_player)
                 ->make_call()
                 .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP)
                 .set_announcement(true)
                 .perform();
       # Set back ducking ratio to zero
-      - nabu.set_ducking:
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
           decibel_reduction: 0
           duration: 1.0s
       # Refresh the LED ring
       - script.execute: control_leds
     on_turn_on:
       # Duck audio
-      - nabu.set_ducking:
+      - mixer_speaker.apply_ducking:
+          id: media_mixing_input
           decibel_reduction: 20
           duration: 0.0s
       # Enable stop wake word
@@ -66,11 +68,11 @@ script:
                 sound_file: !lambda return id(timer_finished_sound);
             - wait_until:
                 lambda: |-
-                  return id(nabu_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
+                  return id(external_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
             - wait_until:
                 not:
                   lambda: |-
-                    return id(nabu_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
+                    return id(external_media_player)->state == media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING;
 
 
   # Script used to fetch the first active timer (Stored in global first_active_timer)
