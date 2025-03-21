@@ -3,6 +3,7 @@ external_components:
       type: git
       url: https://github.com/FutureProofHomes/Satellite1-ESPHome
       ref: develop
+    refresh: 1s
     components: [ version ]
 
 debug:
