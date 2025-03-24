@@ -28,8 +28,9 @@ public:
     void set_pin(XMOSPort port, uint8_t pin) { this->port_ = port; this->pin_ = pin; }
     void set_inverted(bool inverted) { this->inverted_ = inverted; }
     void set_flags(gpio::Flags flags) { this->flags_ = flags; }
+    gpio::Flags get_flags() const {return this->flags_; }
 
-protected:
+ protected:
     XMOSPort port_;
     uint8_t pin_;
     bool inverted_;

@@ -105,7 +105,7 @@ speaker:
     bits_per_sample: 32bit
     i2s_audio_id: i2s_shared
     dac_type: external
-    channel: right_left
+    channel: stereo
     timeout: never
     #buffer_duration: 100ms
 
@@ -213,7 +213,7 @@ script:
   - id: play_sound
     parameters:
       priority: bool
-      sound_file: "media_player::MediaFile*"
+      sound_file: "audio::AudioFile*"
     then:
       - lambda: |-
           if (priority) {
@@ -225,10 +225,7 @@ script:
           }
           if ( (id(external_media_player).state != media_player::MediaPlayerState::MEDIA_PLAYER_STATE_ANNOUNCING ) || priority) {
             id(external_media_player)
-              ->make_call()
-              .set_announcement(true)
-              .set_local_media_file(sound_file)
-              .perform();
+              ->play_file(sound_file, true, false);
           }
   
   # Script to increased/decreased volume  
