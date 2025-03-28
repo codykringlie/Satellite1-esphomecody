@@ -307,8 +307,7 @@ void I2SAudioSpeaker::speaker_task(void *params) {
       size_t bytes_read = this_speaker->audio_ring_buffer_->read((void *) this_speaker->data_buffer_, data_buffer_size,
                                                                  pdMS_TO_TICKS(TASK_DELAY_MS));
       
-      if (
-         > 0) {
+      if ( bytes_read > 0) {
         if ((audio_stream_info.get_bits_per_sample() == 16) && (this_speaker->q15_volume_factor_ < INT16_MAX)) {
           // Scale samples by the volume factor in place
           q15_multiplication((int16_t *) this_speaker->data_buffer_, (int16_t *) this_speaker->data_buffer_,
