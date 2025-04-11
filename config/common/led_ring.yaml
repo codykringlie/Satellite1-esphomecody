@@ -21,7 +21,6 @@ light:
   - platform: esp32_rmt_led_strip
     id: hw_led_ring
     pin: GPIO21
-    rmt_channel: 1
     num_leds: 24
     rgb_order: GRB
     chipset: WS2812
