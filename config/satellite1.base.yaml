@@ -14,8 +14,6 @@ substitutions:
   
   esp32_fw_version: dev
   xmos_fw_version: "v1.0.2"
-  built_for_core_hw_version: "v1.0.0-beta.1"
-  built_for_hat_hw_version: "v1.0.0-beta.1"
 
 
 globals:
@@ -49,7 +47,7 @@ esphome:
   on_boot:
     - priority: 375
       then:
-        - logger.log: "${company_name} ${project_name} ${component_name} version ${built_for_core_hw_version} running ESP firmware: ${esp32_fw_version} and XMOS firmware: ${xmos_fw_version}"
+        - logger.log: "${company_name} ${project_name} ${component_name} version running ESP firmware: ${esp32_fw_version} and XMOS firmware: ${xmos_fw_version}"
         # Run the script to refresh the LED status
         - script.execute: control_leds
         - delay: 1s
