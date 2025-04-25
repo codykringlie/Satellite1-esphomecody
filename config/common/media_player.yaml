@@ -107,6 +107,7 @@ speaker:
     dac_type: external
     channel: stereo
     timeout: never
+    audio_dac: dac_proxy
     #buffer_duration: 100ms
 
 # Virtual speakers to combine the announcement and media streams together into one output
