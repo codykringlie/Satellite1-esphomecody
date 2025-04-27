@@ -146,7 +146,6 @@ voice_assistant:
     - homeassistant.service
         service: media_player.play_media
         data:
-          #input external speaker media player id that you want to use
           entity_id: media_player.vlc_telnet_2
           media_content_id: !lambda 'return x;'
           media_content_type: music
