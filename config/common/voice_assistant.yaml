@@ -143,8 +143,8 @@ voice_assistant:
     - script.execute: activate_stop_word_if_tts_step_is_long
  #Add this section to output TTS to external speaker 
   on_tts_end: 
-    - homeassistant.services
-        services: media_player.play_media
+    - homeassistant.service
+        service: media_player.play_media
         data:
           #input external speaker media player id that you want to use
           entity_id: media_player.vlc_telnet_2
