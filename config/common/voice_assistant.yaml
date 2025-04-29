@@ -141,12 +141,12 @@ voice_assistant:
     - script.execute: control_leds
     # Start a script that would potentially enable the stop word if the response is longer than a second
     - script.execute: activate_stop_word_if_tts_step_is_long
-    - homeassistant.service:
+    - homeassistant.action:
         service: tts.speak
         data:
-          media_player_entity_id: media_player.vlc_telnet_2   #replace this with your media player entity id
+          entity_id: tts.piper
+          media_player_entity_id: media_player.vlc_telnet
           message: !lambda 'return x;'
-          entity_id: tts.piper 
   # When the voice assistant ends ...
   on_end:
     - wait_until:
