@@ -106,6 +106,8 @@ protected:
     void send_rpc_request_(const std::string &method, std::function<void(JsonObject)> fill_params, uint32_t id);
     void update_from_server_obj_(const JsonObject &server_obj);
     
+    std::string server_;
+    uint32_t port_;
     esp_transport_handle_t transport_{nullptr};
     bool notification_task_should_run_{false};
     TaskHandle_t notification_task_handle_{nullptr};

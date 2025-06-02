@@ -10,20 +10,8 @@ namespace snapcast {
 static const char *const TAG = "snapcast_rpc";
 
 esp_err_t SnapcastControlSession::connect(std::string server, uint32_t port){
-    
-    if( this->transport_ == nullptr ){
-        this->transport_ = esp_transport_tcp_init();
-        if (this->transport_ == nullptr) {
-            ESP_LOGE(TAG, "Error occurred during esp_transport_init()");
-            return ESP_FAIL;
-        }
-    }
-    
-    error_t err = esp_transport_connect(this->transport_, server.c_str(), port, -1);
-    if (err != 0) {
-        ESP_LOGE(TAG, "Client unable to connect: errno %d", errno);
-        return ESP_FAIL;
-    }
+    this->server_ = server;
+    this->port_ = port;
     
     // Start the notification handling task
     this->notification_task_should_run_ = true;
@@ -32,13 +20,6 @@ esp_err_t SnapcastControlSession::connect(std::string server, uint32_t port){
         session->notification_loop();
         vTaskDelete(nullptr);
     }, "snapcast_notify", 4096, this, 5, &this->notification_task_handle_);
-
-    this->send_rpc_request_("Server.GetStatus",
-        [](JsonObject params) {
-            // Server.GetStatus does not need any params
-        },
-        static_cast<uint32_t>(RequestId::GetServerStatus)
-    );
 
     return ESP_OK;
 }
@@ -76,6 +57,28 @@ void SnapcastControlSession::update_from_server_obj_(const JsonObject &server_ob
 }
 
 void SnapcastControlSession::notification_loop() {
+  
+  // Initialize transport
+  this->transport_ = esp_transport_tcp_init();
+  if (this->transport_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to initialize transport");
+    return;
+  }
+
+  // Try to connect
+  error_t err = esp_transport_connect(this->transport_, this->server_.c_str(), this->port_, -1);
+  if (err != 0) {
+    ESP_LOGE(TAG, "Connection failed with error: %d", errno);
+    return;
+  }
+
+  // Send initial request after connecting
+  this->send_rpc_request_("Server.GetStatus",
+    [](JsonObject params) {
+      // no params
+    },
+    static_cast<uint32_t>(RequestId::GetServerStatus)
+  );  
 
   while (this->notification_task_should_run_) {
     char chunk[128];  // small read buffer
@@ -126,7 +129,7 @@ void SnapcastControlSession::notification_loop() {
                        } else {
                         printf( "got id: %s, requested: %s\n", params["id"].as<std::string>().c_str(), this->client_state_.stream_id);
                        }
-                    } else if ( method == "Stream.OnProperties"){
+                    } else if (method == "Stream.OnProperties"){
                        JsonObject params = root["params"];
                        if(params["id"].as<std::string>() == this->client_state_.stream_id){
                             StreamInfo sInfo;
