@@ -216,7 +216,11 @@ esp_err_t AudioReader::connect_to_snapcast(SnapcastStream* stream, AudioFileType
   this->audio_file_type_ = AudioFileType::FLAC;
   file_type = AudioFileType::FLAC;
   
-  this->output_transfer_buffer_ = AudioSinkTransferBuffer::create(this->buffer_size_);
+  if( this->output_transfer_buffer_ == nullptr ){
+    this->output_transfer_buffer_ = AudioSinkTransferBuffer::create(this->buffer_size_);
+  } else {
+    this->output_transfer_buffer_->clear_buffered_data();
+  }
   if (this->output_transfer_buffer_ == nullptr) {
     return ESP_ERR_NO_MEM;
   }

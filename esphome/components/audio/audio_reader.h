@@ -6,7 +6,7 @@
 #include "audio_transfer_buffer.h"
 #include "timed_ring_buffer.h"
 
-#include "esphome/components/snapcast/snapcast_client.h"
+#include "esphome/components/snapcast/snapcast_stream.h"
 
 
 #include "esp_err.h"

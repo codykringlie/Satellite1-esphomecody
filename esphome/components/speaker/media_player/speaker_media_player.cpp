@@ -9,6 +9,8 @@
 #include "esphome/components/ota/ota_backend.h"
 #endif
 
+#include "esphome/components/snapcast/snapcast_client.h"
+
 namespace esphome {
 namespace speaker {
 
@@ -116,6 +118,10 @@ void SpeakerMediaPlayer::setup() {
           this->last_audio_write_timestamp_ = write_timestamp;
           this->playback_us_ = this->playback_ms_ * 1000 + this->remainder_us_;
         });
+  }
+
+  if( this->snapcast_client_ != nullptr ){
+    this->snapcast_client_->set_media_player(this);
   }
 
   ESP_LOGI(TAG, "Set up speaker media player");
