@@ -90,6 +90,26 @@ static void mdns_print_results(mdns_result_t *results)
     }
 }
 
+std::string resolve_mdns_host(const char * host_name)
+{
+    printf("Query A: %s.local\n", host_name);
+
+    esp_ip4_addr_t addr;
+    addr.addr = 0;
+
+    esp_err_t err = mdns_query_a(host_name, 2000,  &addr);
+    if(err){
+        if(err == ESP_ERR_NOT_FOUND){
+            printf("Host was not found!");
+            return "";
+        }
+        printf("Query Failed");
+        return "";
+    }
+    char buffer[16];  // Enough for "255.255.255.255\0"
+    snprintf(buffer, sizeof(buffer), IPSTR, IP2STR(&addr));
+    return std::string(buffer);
+}
 
 
 error_t SnapcastClient::connect_via_mdns(){
@@ -108,6 +128,7 @@ error_t SnapcastClient::connect_via_mdns(){
     mdns_print_results(results);
     
     std::string ma_snapcast_hostname;
+    std::string ma_snapcast_ip;
     uint32_t port = 0;
     mdns_result_t *r = results;
     while(r){
@@ -115,8 +136,10 @@ error_t SnapcastClient::connect_via_mdns(){
             for (int t = 0; t < r->txt_count; t++) {
                 if( strcmp(r->txt[t].key, "is_mass") == 0){
                     ma_snapcast_hostname = std::string(r->hostname) + ".local";
+                    ma_snapcast_ip = resolve_mdns_host( r->hostname);
                     port = r->port;
                     ESP_LOGI(TAG, "MA-Snapcast server found: %s:%d", ma_snapcast_hostname.c_str(), port );
+                    ESP_LOGI(TAG, "resolved: %s:%d\n", ma_snapcast_ip.c_str(), port );
                 }
             }
         }
@@ -124,12 +147,13 @@ error_t SnapcastClient::connect_via_mdns(){
     }
     mdns_query_results_free(results);
 
-    if( !ma_snapcast_hostname.empty() ){
-        this->stream_.connect( ma_snapcast_hostname, port );
-        this->cntrl_session_.connect( ma_snapcast_hostname, 1705);
+    if( !ma_snapcast_ip.empty() ){
+        this->stream_.connect( ma_snapcast_ip, port );
+        this->cntrl_session_.connect( ma_snapcast_ip, 1705);
+        return ESP_OK;
     }
-    
-    return ESP_OK;
+    ESP_LOGW(TAG, "Couldn't find MA-Snapcast server.");
+    return ESP_FAIL;
 }
 
 
