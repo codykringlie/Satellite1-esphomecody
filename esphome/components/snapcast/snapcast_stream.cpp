@@ -14,59 +14,75 @@ namespace snapcast {
 
 static const char *const TAG = "snapcast_stream";
 
-static constexpr auto TIME_SYNC_INTERVAL = 10000; //ms
-
 static uint8_t tx_buffer[1024];
 static uint8_t rx_buffer[4096];
 static uint32_t rx_bufer_length = 0; 
 
-static tv_t last_server_time;
-static tv_t last_reported_time_delta;
 
-static tv_t get_est_server_time()
-{
-    const tv_t now = tv_t::now();
-    return (last_reported_time_delta + last_server_time + now) / 2;
-}
+static const uint8_t STREAM_TASK_PRIORITY = 5;
+static const uint32_t CONNECTION_TIMEOUT_MS = 2000;
+static const size_t TASK_STACK_SIZE = 4 * 1024;
+static const uint32_t TIME_SYNC_INTERVAL_MS =  5000;
+
+enum class StreamCommandBits : uint32_t {
+  NONE           = 0,
+  CONNECT        = 1 << 0,
+  DISCONNECT     = 1 << 1,
+  START_STREAM   = 1 << 2,
+  STOP_STREAM    = 1 << 3,
+};
 
 
 
 esp_err_t SnapcastStream::connect(std::string server, uint32_t port){
-    
-    if( this->transport_ == nullptr ){
-        this->transport_ = esp_transport_tcp_init();
-        if (this->transport_ == nullptr) {
-            ESP_LOGE(TAG, "Error occurred during esp_transport_init()");
+    this->server_ = server;
+    this->port_ = port;    
+    if( this->stream_task_handle_ == nullptr ){
+        ESP_LOGI(TAG, "Heap before task: %u", xPortGetFreeHeapSize());
+        RAMAllocator<StackType_t> stack_allocator(RAMAllocator<StackType_t>::ALLOC_INTERNAL);
+        this->task_stack_buffer_ = stack_allocator.allocate(TASK_STACK_SIZE);
+        if (this->task_stack_buffer_ == nullptr) {
+            ESP_LOGE(TAG, "Failed to allocate memory.");
+            return ESP_ERR_NO_MEM;
+        }
+        this->stream_task_handle_ =
+          xTaskCreateStatic(
+            [](void *param) {
+                auto *stream = static_cast<SnapcastStream *>(param);
+                stream->stream_task_();
+                vTaskDelete(nullptr);
+            } 
+            , "snap_stram_task", TASK_STACK_SIZE, (void *) this,
+             STREAM_TASK_PRIORITY, this->task_stack_buffer_, &this->task_stack_);
+        
+
+        if (this->stream_task_handle_ == nullptr) {
+            ESP_LOGE(TAG, "Failed to create snapcast stream task.");
+            this->stream_task_handle_ = nullptr;  // Ensure it's reset
             return ESP_FAIL;
         }
+        
     }
-    
-    error_t err = esp_transport_connect(this->transport_, server.c_str(), port, -1);
-    if (err != 0) {
-        ESP_LOGE(TAG, "Client unable to connect: errno %d", errno);
-        return ESP_FAIL;
-    }
-    this->send_hello_();
+    xTaskNotify( this->stream_task_handle_, static_cast<uint32_t>(StreamCommandBits::CONNECT), eSetValueWithOverwrite);
     return ESP_OK;
 }
 
 esp_err_t SnapcastStream::disconnect(){
-    if( this->transport_ != nullptr ){
-        esp_transport_close(this->transport_);
-        esp_transport_destroy(this->transport_);
-        this->transport_ = nullptr;
-    }
-    this->is_running_ = false;
+   xTaskNotify( this->stream_task_handle_, static_cast<uint32_t>(StreamCommandBits::DISCONNECT), eSetValueWithOverwrite);
+   return ESP_OK; 
+}
+
+esp_err_t SnapcastStream::start_with_notify(std::shared_ptr<esphome::TimedRingBuffer> ring_buffer, TaskHandle_t notification_task){
+    ESP_LOGD(TAG, "Starting stream..." );
+    this->write_ring_buffer_ = ring_buffer;
+    this->notification_target_ = notification_task;
+    xTaskNotify( this->stream_task_handle_, static_cast<uint32_t>(StreamCommandBits::START_STREAM), eSetValueWithOverwrite);
     return ESP_OK;
 }
 
-esp_err_t SnapcastStream::init_streaming(){ 
-    if( this->transport_ == nullptr ){
-        return ESP_FAIL;
-    }
-    this->is_running_ = true;
-    this->codec_header_sent_=false;
-    this->send_hello_();
+esp_err_t SnapcastStream::stop_streaming(){
+    xTaskNotify( this->stream_task_handle_, static_cast<uint32_t>(StreamCommandBits::STOP_STREAM), eSetValueWithOverwrite);
+    return ESP_OK;
 }
 
 
@@ -83,23 +99,14 @@ void SnapcastStream::send_message_(SnapcastMessage &msg){
     }
 }
 
+
+
 void SnapcastStream::send_hello_(){
-    unsigned char mac_base[6] = {0};
-    esp_efuse_mac_get_default(mac_base);
-    esp_read_mac(mac_base, ESP_MAC_WIFI_STA);
-    unsigned char mac_local_base[6] = {0};
-    unsigned char mac_uni_base[6] = {0};
-    esp_derive_local_mac(mac_local_base, mac_uni_base);
     HelloMessage hello_msg;
     this->send_message_(hello_msg);
 }
 
 
-void SnapcastStream::send_time_sync_(){
-    TimeMessage time_sync_msg; 
-    this->send_message_(time_sync_msg);
-    this->last_time_sync_ = millis();
-}
 
 // Compare function for qsort
 static int compare_int32(const void* a, const void* b) {
@@ -117,7 +124,7 @@ bool compare_tv_t(const tv_t& a, const tv_t& b) {
     return a.usec < b.usec;
 }
 
-void SnapcastStream::on_time_msg(MessageHeader msg, tv_t latency_c2s){
+void SnapcastStream::on_time_msg_(MessageHeader msg, tv_t latency_c2s){
     //latency_c2s = t_server-recv - t_client-sent + t_network-latency
     //latency_s2c = t_client-recv - t_server-sent + t_network_latency
     //time diff between server and client as (latency_c2s - latency_s2c) / 2
@@ -128,21 +135,22 @@ void SnapcastStream::on_time_msg(MessageHeader msg, tv_t latency_c2s){
     this->est_time_diff_ = time_stats_.get_median();
 }
 
-void SnapcastStream::on_server_settings_msg(const ServerSettingsMessage &msg){
+void SnapcastStream::on_server_settings_msg_(const ServerSettingsMessage &msg){
     this->server_buffer_size_ = msg.buffer_ms_; 
 }
 
 
 
 
-esp_err_t SnapcastStream::read_next_data_chunk(std::shared_ptr<esphome::TimedRingBuffer> ring_buffer, uint32_t timeout_ms){
+esp_err_t SnapcastStream::read_next_data_chunk_(uint32_t timeout_ms){
+    std::shared_ptr<esphome::TimedRingBuffer> &ring_buffer = this->write_ring_buffer_;
     const uint32_t timeout = millis() + timeout_ms;
     while( millis() < timeout ){
         size_t to_read = sizeof(MessageHeader) > rx_bufer_length ? sizeof(MessageHeader) - rx_bufer_length : 0;
         if( to_read > 0 ){
             int len = esp_transport_read(this->transport_, (char*) rx_buffer + rx_bufer_length, to_read, timeout_ms);
             if (len <= 0) {
-                ESP_LOGW(TAG, "Read snapcast message timeout." );
+                //ESP_LOGW(TAG, "Read snapcast message timeout." );
                 return ESP_FAIL;
             } else {
                 rx_bufer_length += len;
@@ -157,7 +165,7 @@ esp_err_t SnapcastStream::read_next_data_chunk(std::shared_ptr<esphome::TimedRin
         if ( to_read > 0 ){
             int len = esp_transport_read(this->transport_, (char*) rx_buffer + rx_bufer_length, to_read, timeout_ms);
             if (len <= 0) {
-                ESP_LOGW(TAG, "Read snapcast message timeout." );
+               // ESP_LOGW(TAG, "Read snapcast message timeout." );
                 return ESP_FAIL;
             } else {
                 rx_bufer_length += len;
@@ -174,6 +182,9 @@ esp_err_t SnapcastStream::read_next_data_chunk(std::shared_ptr<esphome::TimedRin
         switch( msg->getMessageType() ){
             case message_type::kCodecHeader:
                 {
+                    if (this->state_ != StreamState::STREAMING){
+                        continue;
+                    }
                     CodecHeaderPayloadView codec_header_payload;
                     if( !codec_header_payload.bind( payload, payload_len) ){
                         ESP_LOGE(TAG, "Error binding codec header payload");
@@ -201,8 +212,8 @@ esp_err_t SnapcastStream::read_next_data_chunk(std::shared_ptr<esphome::TimedRin
                 break;
             case message_type::kWireChunk:
                 {
-                    if( !this->codec_header_sent_ ){
-                         continue;
+                    if( this->state_ != StreamState::STREAMING || !this->codec_header_sent_ ){
+                          continue;
                     }
                     WireChunkMessageView wire_chunk_msg;
                     if( !wire_chunk_msg.bind(payload, payload_len) ){
@@ -216,7 +227,7 @@ esp_err_t SnapcastStream::read_next_data_chunk(std::shared_ptr<esphome::TimedRin
                         ESP_LOGE(TAG, "Error acquiring write chunk from ring buffer");
                         return ESP_FAIL;
                     }
-                    timed_chunk->stamp = this->to_local_time( tv_t(wire_chunk_msg.timestamp_sec, wire_chunk_msg.timestamp_usec));
+                    timed_chunk->stamp = this->to_local_time_( tv_t(wire_chunk_msg.timestamp_sec, wire_chunk_msg.timestamp_usec));
                     if (wire_chunk_msg.copyPayloadTo(timed_chunk->data, size))
                     {
                         //ESP_LOGI(TAG, "Wire chunk payload size: %d", size);
@@ -233,13 +244,13 @@ esp_err_t SnapcastStream::read_next_data_chunk(std::shared_ptr<esphome::TimedRin
                 {
                   tv_t stamp;
                   std::memcpy(&stamp, payload, sizeof(stamp));
-                    this->on_time_msg(*msg, stamp);
+                    this->on_time_msg_(*msg, stamp);
                 }
                 break;
             case message_type::kServerSettings:
                 {
                     ServerSettingsMessage server_settings_msg(*msg, payload, payload_len);
-                    this->on_server_settings_msg(server_settings_msg);
+                    this->on_server_settings_msg_(server_settings_msg);
                     server_settings_msg.print();
                 }
                 break;
@@ -250,6 +261,107 @@ esp_err_t SnapcastStream::read_next_data_chunk(std::shared_ptr<esphome::TimedRin
     } // while loop
     return ERR_TIMEOUT;
 }
+
+
+void SnapcastStream::stream_task_(){
+    constexpr TickType_t STREAMING_WAIT = pdMS_TO_TICKS(1);     
+    constexpr TickType_t IDLE_WAIT = pdMS_TO_TICKS(100);        
+    
+    uint32_t notify_value;
+    while( true ){
+        //printf("Task-SnapcastStream High Water Mark: %lu\n", uxTaskGetStackHighWaterMark(nullptr));
+        TickType_t wait_time = (this->state_ == StreamState::STREAMING) ? STREAMING_WAIT : IDLE_WAIT;
+        if (xTaskNotifyWait(0, 0xFFFFFFFF, &notify_value, wait_time)) {
+            if (notify_value & static_cast<uint32_t>(StreamCommandBits::CONNECT)) {
+                this->connect_();
+            }
+            else if (notify_value & static_cast<uint32_t>(StreamCommandBits::DISCONNECT)) {
+                this->disconnect_();
+            }
+            else if (notify_value & static_cast<uint32_t>(StreamCommandBits::START_STREAM)) {
+                this->start_streaming_();
+            }
+            else if (notify_value & static_cast<uint32_t>(StreamCommandBits::STOP_STREAM)) {
+                this->stop_streaming_();
+            }
+        }
+        
+        if (this->state_ == StreamState::STREAMING || this->state_ == StreamState::CONNECTED_IDLE) {
+            this->send_time_sync_();
+            this->read_next_data_chunk_(100);
+        }
+        
+        
+    }
+}
+
+void SnapcastStream::set_state_(StreamState new_state){
+    printf( "SET TO MODE: %d\n", (uint32_t) new_state );
+    this->state_= new_state;
+    if( this->notification_target_ != nullptr ){
+        xTaskNotify(this->notification_target_, static_cast<uint32_t>(this->state_), eSetValueWithOverwrite);
+    }
+}
+
+
+void SnapcastStream::connect_(){
+    if( this->transport_ == nullptr ){
+        this->transport_ = esp_transport_tcp_init();
+        if (this->transport_ == nullptr) {
+            this->set_state_(StreamState::ERROR);
+            return;
+        }
+    }
+    error_t err = esp_transport_connect(this->transport_, this->server_.c_str(), this->port_, CONNECTION_TIMEOUT_MS);
+    if (err != 0) {
+        this->set_state_(StreamState::ERROR);
+        return;
+    }
+    this->send_hello_();
+    this->set_state_(StreamState::CONNECTED_IDLE);
+}
+
+
+void SnapcastStream::disconnect_(){
+    if( this->transport_ != nullptr ){
+        esp_transport_close(this->transport_);
+        esp_transport_destroy(this->transport_);
+        this->transport_ = nullptr;
+    }
+    this->set_state_(StreamState::DISCONNECTED);
+    return;
+}
+
+void SnapcastStream::start_streaming_(){
+    if( this->write_ring_buffer_ == nullptr ){
+        printf( "Ringer buffer not set yet, but trying to start streaming...\n");
+        this->set_state_(StreamState::ERROR);
+        return;
+    }
+    this->codec_header_sent_=false;
+    this->send_hello_();
+    this->set_state_(StreamState::STREAMING);
+    return;
+}
+
+void SnapcastStream::stop_streaming_(){
+    if( this->state_ != StreamState::STREAMING ){
+        this->set_state_(StreamState::ERROR);
+        return;
+    }
+    this->set_state_(StreamState::CONNECTED_IDLE);
+}
+
+void SnapcastStream::send_time_sync_(){
+    if (millis() - this->last_time_sync_ > TIME_SYNC_INTERVAL_MS){
+        TimeMessage time_sync_msg; 
+        this->send_message_(time_sync_msg);
+        this->last_time_sync_ = millis();
+    }
+}
+
+
+
 
 
 }

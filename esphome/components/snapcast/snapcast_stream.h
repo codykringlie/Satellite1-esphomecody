@@ -18,6 +18,16 @@ namespace snapcast {
 
 #define MAX_TIMES 100
 
+enum class StreamState {
+  DISCONNECTED,
+  CONNECTING,
+  CONNECTED_IDLE,      // Connected but waiting
+  STREAMING,           // Receiving data
+  ERROR,               // Fatal or recoverable error
+  STOPPING             // Requested shutdown
+};
+
+
 class TimeStats {
 public:
     void add(tv_t val) {
@@ -43,39 +53,51 @@ private:
 class SnapcastStream {
 public:
     esp_err_t connect(std::string server, uint32_t port);
-    esp_err_t init_streaming();
     esp_err_t disconnect();
-    bool receive_next_message();
-    esp_err_t read_next_data_chunk(uint8_t *data, size_t &size, uint32_t timeout_ms);
-    esp_err_t read_next_data_chunk(std::shared_ptr<esphome::TimedRingBuffer> ring_buffer, uint32_t timeout_ms);
-    bool is_connected() { return this->transport_ != nullptr; }
-    bool is_running() { return this->is_running_; }
-    void set_idle() { this->is_running_ = false; }
-    void trigger_time_sync() {
-        if (millis() - this->last_time_sync_ > 1000) { // every 1 seconds
-            this->send_time_sync_();
-        }
-    }
+    esp_err_t start_with_notify(std::shared_ptr<esphome::TimedRingBuffer> ring_buffer, TaskHandle_t notification_task);
+    esp_err_t stop_streaming();
 
+    bool is_running(){ return this->state_ == StreamState::STREAMING; }
+    void stream_task_();
 protected:
     void send_message_(SnapcastMessage &msg);
-    void send_queueed_messages_();
     void send_hello_();
     void send_time_sync_();
-    tv_t to_local_time(tv_t server_time) {
+    
+    esp_err_t read_next_data_chunk_(uint32_t timeout_ms);
+    void on_server_settings_msg_(const ServerSettingsMessage &msg);
+    void on_time_msg_(MessageHeader msg, tv_t time);
+    tv_t to_local_time_(tv_t server_time) {
         return server_time - this->est_time_diff_ + tv_t::from_millis(this->server_buffer_size_);
     }
 
-    void on_server_settings_msg(const ServerSettingsMessage &msg);
-    void on_time_msg(MessageHeader msg, tv_t time);
+    void set_state_(StreamState new_state);
+    
+    std::string server_;
+    uint32_t port_;
+    StreamState state_{StreamState::DISCONNECTED};
+    TaskHandle_t stream_task_handle_{nullptr};
+    TaskHandle_t notification_target_{nullptr};
+    
+    StaticTask_t task_stack_;
+    StackType_t *task_stack_buffer_{nullptr};
 
+    std::shared_ptr<esphome::TimedRingBuffer> write_ring_buffer_;
+    
     uint32_t last_time_sync_{0};
-    esp_transport_handle_t transport_{NULL};
+    esp_transport_handle_t transport_{nullptr};
     tv_t est_time_diff_{0, 0};
     TimeStats time_stats_;
     uint32_t server_buffer_size_{0};
     bool codec_header_sent_{false};
     bool is_running_{false};
+private:
+
+
+    void connect_();
+    void disconnect_();
+    void start_streaming_();
+    void stop_streaming_();
 };
 
 

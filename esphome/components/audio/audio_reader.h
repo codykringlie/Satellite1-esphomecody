@@ -72,6 +72,8 @@ class AudioReader {
   /// @return AudioReaderState
   AudioReaderState read();
 
+  esp_err_t stop();
+
  protected:
   /// @brief Monitors the http client events to attempt determining the file type from the Content-Type header
   static esp_err_t http_event_handler(esp_http_client_event_t *evt);

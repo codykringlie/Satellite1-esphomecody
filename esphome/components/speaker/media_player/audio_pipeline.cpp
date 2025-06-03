@@ -376,16 +376,8 @@ void AudioPipeline::read_task(void *params) {
 
       std::unique_ptr<audio::AudioReader> reader =
           make_unique<audio::AudioReader>(this_pipeline->transfer_buffer_size_);
-
-      if (event_bits & EventGroupBits::READER_COMMAND_INIT_FILE) {
-        err = reader->start(this_pipeline->current_audio_file_, this_pipeline->current_audio_file_type_);
-      } else if (event_bits & EventGroupBits::READER_COMMAND_INIT_HTTP) {
-        err = reader->start(this_pipeline->current_uri_, this_pipeline->current_audio_file_type_);
-      } else if (event_bits & EventGroupBits::READER_COMMAND_INIT_SNAPCAST) {
-        err = reader->connect_to_snapcast(this_pipeline->snapcast_stream_, this_pipeline->current_audio_file_type_);
-      }
-
-      if (err == ESP_OK) {
+     
+      if (true) {
         size_t file_ring_buffer_size = this_pipeline->buffer_size_;
 
         std::shared_ptr<TimedRingBuffer> temp_ring_buffer;
@@ -401,7 +393,17 @@ void AudioPipeline::read_task(void *params) {
           reader->add_sink(this_pipeline->raw_file_ring_buffer_);
         }
       }
-
+      
+      if( err == ESP_OK ){
+        if (event_bits & EventGroupBits::READER_COMMAND_INIT_FILE) {
+          err = reader->start(this_pipeline->current_audio_file_, this_pipeline->current_audio_file_type_);
+        } else if (event_bits & EventGroupBits::READER_COMMAND_INIT_HTTP) {
+          err = reader->start(this_pipeline->current_uri_, this_pipeline->current_audio_file_type_);
+        } else if (event_bits & EventGroupBits::READER_COMMAND_INIT_SNAPCAST) {
+          err = reader->connect_to_snapcast(this_pipeline->snapcast_stream_, this_pipeline->current_audio_file_type_);
+        }
+      }
+      
       if (err != ESP_OK) {
         // Send specific error message
         event.err = err;

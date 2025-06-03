@@ -38,7 +38,7 @@ void SnapcastClient::on_stream_update(const StreamInfo &info){
     }
     else if ( info.status != "playing" && this->stream_.is_running() ) {
       this->media_player_->make_call().set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP).perform();
-      this->stream_.set_idle();
+      this->stream_.stop_streaming();
     } 
 /*    
     else if (info.status == "paused") {

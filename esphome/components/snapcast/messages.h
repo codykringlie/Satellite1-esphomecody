@@ -47,8 +47,8 @@ struct MessageHeader {
     uint16_t type;
     uint16_t id;
     uint16_t refersTo;
-    tv sent;
-    tv received;
+    tv_t sent;
+    tv_t received;
     uint32_t typed_message_size;  // size of the following message (payload)
     
     static constexpr size_t byteSize() {

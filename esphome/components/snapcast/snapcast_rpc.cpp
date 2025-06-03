@@ -140,7 +140,19 @@ void SnapcastControlSession::notification_loop() {
                                  this->on_stream_update_(sInfo);
                             }
                         }
-                    }    
+                    } else if (method == "Group.OnStreamChanged"){
+                       JsonObject params = root["params"]; 
+                       if(params["id"].as<std::string>() == this->client_state_.group_id){
+                            if(this->client_state_.stream_id != params["stream_id"].as<std::string>()){
+                                this->send_rpc_request_("Server.GetStatus",
+                                    [](JsonObject params) {
+                                    // no params
+                                    },
+                                    static_cast<uint32_t>(RequestId::GetServerStatus)
+                                );  
+                         }
+                       }
+                    }   
                 }
                 return true;
             });

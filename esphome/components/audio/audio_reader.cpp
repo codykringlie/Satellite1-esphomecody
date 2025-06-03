@@ -65,6 +65,9 @@ esp_err_t AudioReader::add_sink(const std::weak_ptr<TimedRingBuffer> &output_rin
     this->output_transfer_buffer_->set_sink(output_ring_buffer);
     this->output_ring_buffer_ = output_ring_buffer.lock();
     return ESP_OK;
+  } else {
+    this->output_ring_buffer_ = output_ring_buffer.lock();
+    return ESP_OK;
   }
 
   return ESP_ERR_INVALID_STATE;
@@ -216,6 +219,7 @@ esp_err_t AudioReader::connect_to_snapcast(SnapcastStream* stream, AudioFileType
   this->audio_file_type_ = AudioFileType::FLAC;
   file_type = AudioFileType::FLAC;
   
+/*  
   if( this->output_transfer_buffer_ == nullptr ){
     this->output_transfer_buffer_ = AudioSinkTransferBuffer::create(this->buffer_size_);
   } else {
@@ -224,8 +228,13 @@ esp_err_t AudioReader::connect_to_snapcast(SnapcastStream* stream, AudioFileType
   if (this->output_transfer_buffer_ == nullptr) {
     return ESP_ERR_NO_MEM;
   }
-
-  this->snapcast_stream_->init_streaming();
+*/
+  if( this->output_ring_buffer_ == nullptr ){
+    printf( "OUTPUTBUFFER NOT SET YET!!\n");
+    return ESP_FAIL;
+  }
+   this->output_ring_buffer_->reset();
+  this->snapcast_stream_->start_with_notify(this->output_ring_buffer_, xTaskGetCurrentTaskHandle());
   
   return ESP_OK;
 }
@@ -236,7 +245,7 @@ AudioReaderState AudioReader::read() {
     return this->http_read_();
   } else if (this->current_audio_file_ != nullptr) {
     return this->file_read_();
-  } else if (this->snapcast_stream_->is_connected()) {
+  } else if (this->snapcast_stream_ != nullptr ) {
     return this->snapcast_read_();
   }
 
@@ -328,17 +337,41 @@ AudioReaderState AudioReader::http_read_() {
 
 
 AudioReaderState AudioReader::snapcast_read_() {
-this->snapcast_stream_->trigger_time_sync();
-static uint32_t last_call = millis();
-if( this->snapcast_stream_->read_next_data_chunk(this->output_ring_buffer_, 100) != ESP_OK ){
-    // Read error
-    //this->snapcast_stream_.disconnect();
-    //delay(READ_WRITE_TIMEOUT_MS);
+#if 0
+  this->snapcast_stream_->trigger_time_sync();
+  static uint32_t last_call = millis();
+  if( this->snapcast_stream_->read_next_data_chunk(this->output_ring_buffer_, 100) != ESP_OK ){
+      // Read error
+      //this->snapcast_stream_.disconnect();
+      //delay(READ_WRITE_TIMEOUT_MS);
+    }
+    //delay(5);
+    // printf( "Loop time: %d\n", millis() - last_call);
+    // last_call = millis();
+    return AudioReaderState::READING;
+#endif
+  
+  uint32_t state_value;
+  if( xTaskNotifyWait(0, 0, &state_value, pdMS_TO_TICKS(500)) == pdTRUE){
+    StreamState new_state = static_cast<StreamState>(state_value);
+    if( new_state == StreamState::ERROR ){
+      return AudioReaderState::FAILED;
+    }
+    if( new_state == StreamState::CONNECTED_IDLE){
+      return AudioReaderState::FINISHED;
+    }
   }
-  //delay(5);
-  // printf( "Loop time: %d\n", millis() - last_call);
-  // last_call = millis();
+  
   return AudioReaderState::READING;
+
+}
+
+
+esp_err_t AudioReader::stop(){
+  if( this->snapcast_stream_ ){
+    this->snapcast_stream_->stop_streaming();
+  }
+  return ESP_OK;
 }
 
 
