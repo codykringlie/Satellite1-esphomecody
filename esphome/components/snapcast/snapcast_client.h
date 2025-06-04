@@ -26,13 +26,15 @@ public:
 
   error_t connect_to_server(std::string url, uint32_t port);
   void set_media_player(esphome::speaker::SpeakerMediaPlayer* media_player){ this->media_player_ = media_player; }  
-  
+  void set_server_ip(std::string server_ip){ this->server_ip_ = server_ip; }
   SnapcastStream* get_stream(){ return &this->stream_; }
   
   void on_stream_update(const StreamInfo &info);
 protected:
   error_t connect_via_mdns();
- 
+  std::string server_ip_;
+  TaskHandle_t mdns_task_handle_{nullptr};
+
   SnapcastStream stream_;
   SnapcastControlSession cntrl_session_;
   esphome::speaker::SpeakerMediaPlayer* media_player_;

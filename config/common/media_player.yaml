@@ -151,6 +151,7 @@ speaker:
 
 snapcast:
   id: snapcast_client
+  #server_ip: 192.168.178.57
 
 media_player:
   - platform: speaker

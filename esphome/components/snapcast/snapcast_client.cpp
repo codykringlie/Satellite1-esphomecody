@@ -17,7 +17,21 @@ static const char *const TAG = "snapcast_client";
 
 
 void SnapcastClient::setup(){
-    this->connect_via_mdns();
+    if(this->server_ip_.empty()){
+        //this->connect_via_mdns();
+        if (this->mdns_task_handle_ == nullptr) {
+            xTaskCreate([](void *param) {
+            auto *client = static_cast<SnapcastClient *>(param);
+            client->connect_via_mdns();  // private task function
+            vTaskDelete(nullptr);
+            }, "snap_mdns_task", 4096, this, 5, &this->mdns_task_handle_);
+        }
+    } else {
+        this->stream_.connect( this->server_ip_, 1704 );
+        this->cntrl_session_.connect( this->server_ip_, 1705);
+    }
+    
+    
     this->cntrl_session_.set_on_stream_update([this](const StreamInfo &info) {
         this->on_stream_update(info);
     });
@@ -115,7 +129,7 @@ std::string resolve_mdns_host(const char * host_name)
 error_t SnapcastClient::connect_via_mdns(){
     
     mdns_result_t * results = nullptr;
-    esp_err_t err = mdns_query_ptr( "_snapcast", "_tcp", 3000, 20,  &results);
+    esp_err_t err = mdns_query_ptr( "_snapcast", "_tcp", 6000, 20,  &results);
     if(err){
         ESP_LOGE(TAG, "Query Failed");
         return ESP_OK;
@@ -136,8 +150,15 @@ error_t SnapcastClient::connect_via_mdns(){
             for (int t = 0; t < r->txt_count; t++) {
                 if( strcmp(r->txt[t].key, "is_mass") == 0){
                     ma_snapcast_hostname = std::string(r->hostname) + ".local";
-                    ma_snapcast_ip = resolve_mdns_host( r->hostname);
                     port = r->port;
+                    if( r->addr && r->addr->addr.type == ESP_IPADDR_TYPE_V4 ){
+                         mdns_ip_addr_t *a = r->addr;
+                         char buffer[16];  // Enough for "255.255.255.255\0"
+                         snprintf(buffer, sizeof(buffer), IPSTR, IP2STR(&(a->addr.u_addr.ip4)));
+                         ma_snapcast_ip = std::string(buffer);   
+                    } else {
+                        ma_snapcast_ip = resolve_mdns_host( r->hostname);
+                    }
                     ESP_LOGI(TAG, "MA-Snapcast server found: %s:%d", ma_snapcast_hostname.c_str(), port );
                     ESP_LOGI(TAG, "resolved: %s:%d\n", ma_snapcast_ip.c_str(), port );
                 }
