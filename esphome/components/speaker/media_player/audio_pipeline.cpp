@@ -423,16 +423,19 @@ void AudioPipeline::read_task(void *params) {
         event_bits = xEventGroupGetBits(this_pipeline->event_group_);
 
         if (event_bits & EventGroupBits::PIPELINE_COMMAND_STOP) {
+          reader->stop();
           break;
         }
 
         audio::AudioReaderState reader_state = reader->read();
 
         if (reader_state == audio::AudioReaderState::FINISHED) {
+          reader->stop();
           break;
         } else if (reader_state == audio::AudioReaderState::FAILED) {
           xEventGroupSetBits(this_pipeline->event_group_,
                              EventGroupBits::READER_MESSAGE_ERROR | EventGroupBits::PIPELINE_COMMAND_STOP);
+          reader->stop();
           break;
         }
       }

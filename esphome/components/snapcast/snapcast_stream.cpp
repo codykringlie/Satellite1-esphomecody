@@ -30,6 +30,7 @@ enum class StreamCommandBits : uint32_t {
   DISCONNECT     = 1 << 1,
   START_STREAM   = 1 << 2,
   STOP_STREAM    = 1 << 3,
+  SEND_REPORT    = 1 << 4,
 };
 
 
@@ -52,7 +53,7 @@ esp_err_t SnapcastStream::connect(std::string server, uint32_t port){
                 stream->stream_task_();
                 vTaskDelete(nullptr);
             } 
-            , "snap_stram_task", TASK_STACK_SIZE, (void *) this,
+            , "snap_stream_task", TASK_STACK_SIZE, (void *) this,
              STREAM_TASK_PRIORITY, this->task_stack_buffer_, &this->task_stack_);
         
 
@@ -85,6 +86,15 @@ esp_err_t SnapcastStream::stop_streaming(){
     return ESP_OK;
 }
 
+esp_err_t SnapcastStream::report_volume(uint8_t volume, bool muted){
+    if( volume != this->volume_ || muted_ != this->muted_){
+        this->volume_ = volume;
+        this->muted_ = muted;
+        xTaskNotify( this->stream_task_handle_, static_cast<uint32_t>(StreamCommandBits::SEND_REPORT), eSetValueWithOverwrite);
+    }
+    return ESP_OK;
+}
+
 
 
 void SnapcastStream::send_message_(SnapcastMessage &msg){
@@ -107,23 +117,6 @@ void SnapcastStream::send_hello_(){
 }
 
 
-
-// Compare function for qsort
-static int compare_int32(const void* a, const void* b) {
-    int32_t val_a = *(const int32_t*)a;
-    int32_t val_b = *(const int32_t*)b;
-
-    if (val_a < val_b) return -1;
-    if (val_a > val_b) return 1;
-    return 0;
-}
-
-bool compare_tv_t(const tv_t& a, const tv_t& b) {
-    if (a.sec < b.sec) return true;
-    if (a.sec > b.sec) return false;
-    return a.usec < b.usec;
-}
-
 void SnapcastStream::on_time_msg_(MessageHeader msg, tv_t latency_c2s){
     //latency_c2s = t_server-recv - t_client-sent + t_network-latency
     //latency_s2c = t_client-recv - t_server-sent + t_network_latency
@@ -136,9 +129,13 @@ void SnapcastStream::on_time_msg_(MessageHeader msg, tv_t latency_c2s){
 }
 
 void SnapcastStream::on_server_settings_msg_(const ServerSettingsMessage &msg){
-    this->server_buffer_size_ = msg.buffer_ms_; 
+    this->server_buffer_size_ = msg.buffer_ms_;
+    this->volume_ = msg.volume_;
+    this->muted_ = msg.muted_;
+    if (this->on_status_update_) {
+        this->on_status_update_(this->state_, this->volume_, this->muted_);
+    } 
 }
-
 
 
 
@@ -284,14 +281,15 @@ void SnapcastStream::stream_task_(){
             else if (notify_value & static_cast<uint32_t>(StreamCommandBits::STOP_STREAM)) {
                 this->stop_streaming_();
             }
+            else if (notify_value & static_cast<uint32_t>(StreamCommandBits::SEND_REPORT)) {
+                this->send_report_();
+            }
         }
         
         if (this->state_ == StreamState::STREAMING || this->state_ == StreamState::CONNECTED_IDLE) {
             this->send_time_sync_();
             this->read_next_data_chunk_(100);
         }
-        
-        
     }
 }
 
@@ -301,6 +299,9 @@ void SnapcastStream::set_state_(StreamState new_state){
     if( this->notification_target_ != nullptr ){
         xTaskNotify(this->notification_target_, static_cast<uint32_t>(this->state_), eSetValueWithOverwrite);
     }
+    if (this->on_status_update_) {
+        this->on_status_update_(this->state_, this->volume_, this->muted_);
+    } 
 }
 
 
@@ -360,6 +361,11 @@ void SnapcastStream::send_time_sync_(){
     }
 }
 
+void SnapcastStream::send_report_(){
+    ClientInfoMessage msg(this->volume_, this->muted_);
+    msg.print();
+    this->send_message_(msg);
+}
 
 
 

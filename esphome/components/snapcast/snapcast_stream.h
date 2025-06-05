@@ -56,9 +56,14 @@ public:
     esp_err_t disconnect();
     esp_err_t start_with_notify(std::shared_ptr<esphome::TimedRingBuffer> ring_buffer, TaskHandle_t notification_task);
     esp_err_t stop_streaming();
-
+    esp_err_t report_volume(uint8_t volume, bool muted);
+    
+    bool is_connected(){ return this->state_ == StreamState::STREAMING || this->state_ == StreamState::CONNECTED_IDLE; }
     bool is_running(){ return this->state_ == StreamState::STREAMING; }
-    void stream_task_();
+    void set_on_status_update(std::function<void(StreamState state, uint8_t volume, bool muted)> cb) {
+        this->on_status_update_ = std::move(cb);
+    }
+    
 protected:
     void send_message_(SnapcastMessage &msg);
     void send_hello_();
@@ -91,13 +96,18 @@ protected:
     uint32_t server_buffer_size_{0};
     bool codec_header_sent_{false};
     bool is_running_{false};
+    uint8_t volume_{0};
+    bool muted_{false};
+    
+    std::function<void(StreamState state, uint8_t volume, bool muted)> on_status_update_;
 private:
-
+    void stream_task_();
 
     void connect_();
     void disconnect_();
     void start_streaming_();
     void stop_streaming_();
+    void send_report_();
 };
 
 

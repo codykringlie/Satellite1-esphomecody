@@ -254,6 +254,11 @@ public:
         return pos - dest;
     }
 
+    void print() const override {
+        this->header_.print();
+        printf("JSON: %s\n", this->json_.c_str());
+    }
+
 protected:
     void serializeBody(uint8_t *data)
     {
@@ -301,6 +306,29 @@ public:
         root["Version"] = "0.17.1";
     }
 };
+
+/*
+| Field   | Type   | Description                                              |
+|---------|--------|----------------------------------------------------------|
+| size    | uint32 | Size of the following JSON string                        |
+| payload | char[] | JSON string containing the message (not null terminated) |
+*/
+class ClientInfoMessage : public JsonMessage {
+public:
+    ClientInfoMessage(uint8_t volume, bool muted) : JsonMessage(message_type::kClientInfo), volume_(volume), muted_(muted){
+        this->set_json(
+            this->build_json() 
+        );
+    }
+    void construct_json_(JsonObject root) const override {
+        root["volume"] = this->volume_;
+        root["muted"] =  this->muted_ ? "true" : "false";
+    }
+protected:
+    uint8_t volume_{0};
+    bool muted_{false};
+};
+
 
 
 /*

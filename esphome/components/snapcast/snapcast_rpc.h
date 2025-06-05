@@ -102,7 +102,6 @@ public:
 
 
 protected:
-    void handle_json_rpc(JsonObject root);
     void send_rpc_request_(const std::string &method, std::function<void(JsonObject)> fill_params, uint32_t id);
     void update_from_server_obj_(const JsonObject &server_obj);
     

@@ -29,7 +29,9 @@ public:
   void set_server_ip(std::string server_ip){ this->server_ip_ = server_ip; }
   SnapcastStream* get_stream(){ return &this->stream_; }
   
-  void on_stream_update(const StreamInfo &info);
+  void report_volume(float volume, bool muted);
+  void on_stream_update_msg(const StreamInfo &info);
+  void on_stream_state_update(StreamState state, uint8_t volume, bool muted);
 protected:
   error_t connect_via_mdns();
   std::string server_ip_;

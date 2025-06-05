@@ -583,7 +583,9 @@ void SpeakerMediaPlayer::set_volume_(float volume, bool publish) {
   } else {
     this->set_mute_state_(false);
   }
-
+  if( this->snapcast_client_ ){
+    this->snapcast_client_->report_volume(volume, this->is_muted_);
+  }
   this->defer([this, volume]() { this->volume_trigger_->trigger(volume); });
 }
 

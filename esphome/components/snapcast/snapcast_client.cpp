@@ -31,9 +31,12 @@ void SnapcastClient::setup(){
         this->cntrl_session_.connect( this->server_ip_, 1705);
     }
     
-    
+    this->stream_.set_on_status_update([this](StreamState state, uint8_t volume, bool muted){
+        this->on_stream_state_update(state, volume, muted);
+    });
+
     this->cntrl_session_.set_on_stream_update([this](const StreamInfo &info) {
-        this->on_stream_update(info);
+        this->on_stream_update_msg(info);
     });
 
 }
@@ -43,7 +46,16 @@ error_t SnapcastClient::connect_to_server(std::string url, uint32_t port){
     return ESP_OK;
 }
 
-void SnapcastClient::on_stream_update(const StreamInfo &info){
+void SnapcastClient::report_volume(float volume, bool muted){
+    if( this->stream_.is_connected()){
+        uint8_t volume_percent = int(volume * 100. + 0.5);
+        volume_percent = volume_percent > 100 ? 100 : volume_percent;
+        this->stream_.report_volume(volume_percent, muted);
+    }
+}
+
+
+void SnapcastClient::on_stream_update_msg(const StreamInfo &info){
   ESP_LOGI(TAG, "Stream updated: status=%s", info.status.c_str());
 
   if (this->media_player_ != nullptr) {
@@ -63,6 +75,16 @@ void SnapcastClient::on_stream_update(const StreamInfo &info){
 */
   }
 }
+
+void SnapcastClient::on_stream_state_update(StreamState state, uint8_t volume, bool muted){
+    if (this->media_player_ != nullptr) {
+        this->media_player_->make_call()
+            .set_volume( volume / 100.)
+            .set_command( muted ? media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_MUTE : media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_UNMUTE)
+            .perform();
+    }
+}
+
 
 
 static const char * if_str[] = {"STA", "AP", "ETH", "MAX"};
