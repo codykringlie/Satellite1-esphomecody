@@ -45,6 +45,7 @@ micro_wake_word:
   id: mww
   models:
     - model: hey_jarvis
+       probability_cutoff: 0.2
       id: hey_jarvis
     - model: okay_nabu
       id: okay_nabu    
@@ -52,7 +53,6 @@ micro_wake_word:
       id: stop
       internal: true
   vad:
-    probability_cutoff: 0.2
     microphone: comm_mic
 
     
