@@ -45,7 +45,7 @@ micro_wake_word:
   id: mww
   models:
     - model: hey_jarvis
-       probability_cutoff: 0.2
+        probability_cutoff: 0.2
       id: hey_jarvis
     - model: okay_nabu
       id: okay_nabu    
