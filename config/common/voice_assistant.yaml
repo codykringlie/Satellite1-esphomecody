@@ -53,7 +53,7 @@ micro_wake_word:
       id: stop
       internal: true
   vad:
-    microphone: comm_mic
+  microphone: comm_mic
 
     
   on_wake_word_detected:
