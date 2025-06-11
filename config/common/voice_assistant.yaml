@@ -45,7 +45,6 @@ micro_wake_word:
   id: mww
   models:
     - model: hey_jarvis
-        probability_cutoff: 0.2
       id: hey_jarvis
     - model: okay_nabu
       id: okay_nabu    
@@ -54,8 +53,7 @@ micro_wake_word:
       internal: true
   vad:
   microphone: comm_mic
-
-    
+  
   on_wake_word_detected:
     # If the wake word is detected when the device is muted (Possible with the software mute switch): Do nothing
     - if:
