@@ -53,6 +53,8 @@ micro_wake_word:
       internal: true
   vad:
     probability_cutoff: 0.2
+    microphone: comm_mic
+
     
   on_wake_word_detected:
     # If the wake word is detected when the device is muted (Possible with the software mute switch): Do nothing
