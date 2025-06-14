@@ -46,6 +46,7 @@ micro_wake_word:
   models:
     - model: hey_jarvis
       id: hey_jarvis
+      probability cutoff: 0.50
     - model: okay_nabu
       id: okay_nabu   
     - model: https://raw.githubusercontent.com/formatBCE/Respeaker-Lite-ESPHome-integration/refs/heads/main/microwakeword/models/v2/kenobi.json
